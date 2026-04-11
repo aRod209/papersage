@@ -30,11 +30,13 @@ graph TD
         Controller["PaperController<br/>(REST Layer)"]
         Controller --> PaperService["PaperService<br/>(Business Logic)"]
         PaperService --> PDFService["PdfExtractionService<br/>(PDFBox)"]
+        PaperService --> ChunkService["TextChunkingService"]
         PaperService --> AIService["GeminiAiService<br/>(LangChain4j)"]
         PaperService --> QAService["PaperQAService<br/>(Chunking + Q&A)"]
     end
 
     PDFService -->|"Raw Text"| PaperService
+    ChunkService -->|"Text Chunks"| PaperService
     AIService -->|"Structured JSON"| PaperService
     QAService -->|"Grounded Answer"| PaperService
 
