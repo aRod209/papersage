@@ -1,0 +1,26 @@
+Analyze the following CS research paper text and produce a structured analysis.
+
+INSTRUCTIONS:
+1. **Executive Summary**: Provide 5 to 8 concise bullet points that summarize the paper's purpose, methodology, findings, and conclusions. Each bullet should be a single, self-contained sentence.
+2. **Key Contributions**: Provide 3 to 7 bullet points describing the paper's novel contributions to the field. Focus on what is new or improved compared to prior work.
+3. **Glossary**: Identify 5 to 15 important technical terms used in the paper and provide a simple, plain-language definition for each. Definitions should be understandable by someone without deep domain expertise.
+4. **Prerequisite Knowledge**: Identify the specific background knowledge a reader should already have before reading this paper. Be precise and focused — do NOT use vague topics like "calculus", "statistics", "machine learning", or "deep learning". Instead, name the exact concept the paper relies on.
+   - "mathTopics": 2 to 5 specific math concepts the paper directly uses (e.g., "Bayes' Theorem", "Gradient Descent", "Singular Value Decomposition", "Cross-Entropy Loss", "Markov Decision Processes"). Only include topics that are genuinely relevant to understanding this paper.
+   - "aiMlTopics": 2 to 5 specific AI/ML concepts the paper builds upon (e.g., "Transformer Architecture", "Contrastive Learning", "Reinforcement Learning from Human Feedback", "Variational Autoencoders", "Attention Mechanism"). Only include topics that are directly relevant to this paper.
+
+RESPONSE FORMAT:
+Respond with ONLY valid JSON (no markdown fences, no commentary, no extra text). The JSON must conform exactly to this schema:
+
+{
+  "executiveSummary": ["string", "..."],
+  "keyContributions": ["string", "..."],
+  "glossary": [
+    { "term": "string", "definition": "string" }
+  ],
+  "prerequisiteKnowledge": {
+    "mathTopics": ["string", "..."],
+    "aiMlTopics": ["string", "..."]
+  }
+}
+
+PAPER TEXT:

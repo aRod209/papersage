@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: papersage_backend
+  config:
+    import: optional:classpath:secrets.properties
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+app:
+  cors:
+    allowed-origins: "http://localhost:3000,http://localhost:5173"
