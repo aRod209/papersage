@@ -28,27 +28,24 @@ graph TD
 
     subgraph "Spring Boot Application (:8080)"
         Controller["PaperController<br/>(REST Layer)"]
-        Controller --> PaperService["PaperService<br/>(Business Logic)"]
-        PaperService --> PDFService["PdfExtractionService<br/>(PDFBox)"]
-        PaperService --> ChunkService["TextChunkingService"]
-        PaperService --> AIService["GeminiAiService"]
-        PaperService --> QAService["PaperQAService<br/>(Chunking + Q&A)"]
+        Controller --> PDFService["PdfExtractionService<br/>(PDFBox)"]
+        Controller --> ChunkService["TextChunkingService"]
+        Controller --> AIService["GeminiSummaryService"]
+        Controller --> QAService["PaperQAService<br/>(Chunking + Q&A)"]
     end
 
-    PDFService -->|"Raw Text"| PaperService
-    ChunkService -->|"Text Chunks"| PaperService
-    AIService -->|"Structured JSON"| PaperService
-    QAService -->|"Grounded Answer"| PaperService
+    PDFService -->|"Raw Text"| Controller
+    ChunkService -->|"Text Chunks"| Controller
+    AIService -->|"Structured JSON"| Controller
+    QAService -->|"Grounded Answer"| Controller
 
     AIService <-->|"Prompt / Response"| Gemini["Google Gemini<br/>2.5 Flash API"]
 
-    PaperService -->|"AnalysisResult"| Controller
     Controller -->|"JSON Response"| Client
 
     style Client fill:#61DAFB,color:#000
     style Gemini fill:#4285F4,color:#fff
     style Controller fill:#6DB33F,color:#fff
-    style PaperService fill:#6DB33F,color:#fff
     style PDFService fill:#ff6b35,color:#fff
     style ChunkService fill:#a6116d,color:#fff
     style AIService fill:#4285F4,color:#fff
