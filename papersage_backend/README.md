@@ -31,7 +31,7 @@ graph TD
         Controller --> PDFService["PdfExtractionService<br/>(PDFBox)"]
         Controller --> ChunkService["TextChunkingService"]
         Controller --> AIService["GeminiSummaryService"]
-        Controller --> QAService["PaperQAService<br/>(Chunking + Q&A)"]
+        Controller --> QAService["GroundedAnswerService<br/>(Chunking + Q&A)"]
     end
 
     PDFService -->|"Raw Text"| Controller
