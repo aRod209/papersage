@@ -24,14 +24,14 @@ The PaperSage backend is a Java 21 / Spring Boot 3 REST service responsible for:
 
 ```mermaid
 graph TD
-    Client["React Frontend<br/>:5173"] -->|"POST /api/papers/upload<br/>(multipart/form-data)"| Controller
+    Client["React Frontend<br/>:5173"] -->|"POST /api/v1/papers<br/>(multipart/form-data)"| Controller
 
     subgraph "Spring Boot Application (:8080)"
         Controller["PaperController<br/>(REST Layer)"]
         Controller --> PaperService["PaperService<br/>(Business Logic)"]
         PaperService --> PDFService["PdfExtractionService<br/>(PDFBox)"]
         PaperService --> ChunkService["TextChunkingService"]
-        PaperService --> AIService["GeminiAiService<br/>(LangChain4j)"]
+        PaperService --> AIService["GeminiAiService"]
         PaperService --> QAService["PaperQAService<br/>(Chunking + Q&A)"]
     end
 
@@ -62,7 +62,7 @@ graph TD
 | **Controller** | Receives HTTP requests, validates input, returns responses |
 | **Service** | Orchestrates PDF extraction + AI analysis |
 | **PdfExtractionService** | Uses Apache PDFBox to extract raw text from uploaded PDFs |
-| **GeminiAiService** | Constructs structured prompts and calls the Gemini API via LangChain4j |
+| **GeminiAiService** | Constructs structured prompts and calls the Gemini API |
 | **PaperQAService** | Chunks paper text, builds grounding context, and answers user questions |
 
 ---
