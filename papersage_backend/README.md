@@ -102,12 +102,12 @@ papersage_backend/
 
 ### Base URL
 ```
-http://localhost:8080/api
+http://localhost:8080/api/v1
 ```
 
 ---
 
-### `POST /api/papers/upload`
+### `POST /api/papers`
 
 Upload a PDF and receive a full structured analysis.
 
