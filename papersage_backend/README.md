@@ -50,6 +50,7 @@ graph TD
     style Controller fill:#6DB33F,color:#fff
     style PaperService fill:#6DB33F,color:#fff
     style PDFService fill:#ff6b35,color:#fff
+    style ChunkService fill:#a6116d,color:#fff
     style AIService fill:#4285F4,color:#fff
     style QAService fill:#6DB33F,color:#fff
 ```
