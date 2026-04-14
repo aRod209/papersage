@@ -28,7 +28,7 @@ The service extracts text, verifies the document is a CS paper, generates a stru
   - Key contributions (3–7 bullet points)
   - Glossary of important terms (5–15 entries with plain-language definitions)
   - Prerequisite knowledge (math + AI/ML topics)
-- **Semantic Q&A (RAG)** — Chunks text, embeds with Gemini `text-embedding-004`, retrieves top-k relevant chunks, and generates grounded answers with source citations.
+- **Semantic Q&A (RAG)** — Chunks text, embeds with Gemini `gemini-embedding-001`, retrieves top-k relevant chunks, and generates grounded answers with source citations.
 - **Real-Time Progress** — Server-Sent Events (SSE) stream pipeline progress to a live progress bar in the browser.
 
 ---
@@ -56,7 +56,7 @@ graph LR
 
     subgraph External ["Google Gemini API"]
         M[Gemini 2.5 Flash]
-        N[text-embedding-004]
+        N[gemini-embedding-001]
     end
 
     B -->|POST /api/v1/papers| E
@@ -65,7 +65,7 @@ graph LR
 
     E --> F --> G --> H --> I --> J
     E --> K
-    I --> N
+    I --> O[GeminiEmbeddingService] --> N
     J --> M
     K --> M
     G --> M
@@ -79,7 +79,7 @@ graph LR
 | ---------- | --------------------------------------------------------------------------- |
 | Frontend   | React 19, Vite 6, Tailwind CSS 4, JavaScript/JSX                           |
 | Backend    | Java 21, Spring Boot 3.5, Apache PDFBox 3.0, Maven                         |
-| AI / LLM   | Google Gemini 2.5 Flash (analysis & Q&A), Gemini `text-embedding-004` (embeddings) |
+| AI / LLM   | Google Gemini 2.5 Flash (analysis & Q&A), Gemini `gemini-embedding-001` (embeddings) |
 | Streaming  | Server-Sent Events (SSE)                                                   |
 
 ---
@@ -127,12 +127,15 @@ cd papersage
 cd papersage_backend
 
 # Set your Gemini API key (choose one):
+
 #   Option A – environment variable
 export GEMINI_API_KEY=your-key-here        # Linux/macOS
 set GEMINI_API_KEY=your-key-here           # Windows CMD
 
-#   Option B – application.properties
-#   Add: gemini.api.key=your-key-here
+#   Option B – secrets.properties file (recommended)
+#   Create src/main/resources/secrets.properties with:
+#     gemini.api.key=your-key-here
+#   (Already imported by application.yaml via spring.config.import)
 
 ./mvnw spring-boot:run          # Linux/macOS
 mvnw.cmd spring-boot:run        # Windows
