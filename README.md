@@ -1,89 +1,86 @@
-# 🧠 PaperSage
+# 📄 PaperSage
 
-> **AI-powered research paper summarization & semantic Q&A**
+**AI-powered research paper summarization & Q&A**
 
-![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?logo=springboot&logoColor=white)
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-4285F4?logo=google&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue)
+[![Java 21](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vite.dev/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-API-4285F4?logo=google)](https://ai.google.dev/)
 
 ---
 
-## 📖 What is PaperSage?
+## Overview
 
-PaperSage is a full-stack web application that transforms dense academic PDFs into clear, structured intelligence — instantly. Upload any CS research paper and PaperSage will:
+PaperSage lets you upload a Computer Science research paper (PDF) and instantly receive a structured, actionable analysis — plus the ability to ask natural-language questions about the paper's content.
 
-- **Summarize** the paper into concise, actionable bullet points
-- **Extract key contributions** so you know exactly what's novel
-- **Build a glossary** of important terms with plain-language definitions
-- **Answer your questions** semantically using the paper's own content as context
-
-Whether you're a researcher, student, or engineer trying to stay current, PaperSage cuts through the noise so you can focus on what matters.
+The service extracts text, verifies the document is a CS paper, generates a structured summary using Google Gemini, and provides a RAG-powered semantic Q&A pipeline — all streamed to the browser with real-time progress updates.
 
 ---
 
 ## ✨ Features
 
-| Feature | Description |
-|---|---|
-| 📄 **PDF Upload** | Drag-and-drop or click to upload research paper PDFs (up to 50 MB) |
-| 🔍 **Executive Summary** | 5–8 bullet-point overview of the paper's core ideas |
-| 🏆 **Key Contributions** | 3–7 bullet points on what's new and why it matters |
-| 📚 **Glossary** | 5–15 domain terms explained in plain English |
-| 💬 **Semantic Q&A** | Ask any question about the paper; get grounded, cited answers |
-| ⚡ **Fast AI** | Powered by Google Gemini 2.5 Flash for low-latency responses |
+- **PDF Upload & Text Extraction** — Upload PDFs up to 50 MB; text is extracted via Apache PDFBox.
+- **CS Guardrail Classification** — Gemini verifies the document is a CS research paper before processing (rejects non-CS papers with HTTP 422).
+- **Structured Analysis** — Generates:
+  - Executive summary (5–8 bullet points)
+  - Key contributions (3–7 bullet points)
+  - Glossary of important terms (5–15 entries with plain-language definitions)
+  - Prerequisite knowledge (math + AI/ML topics)
+- **Semantic Q&A (RAG)** — Chunks text, embeds with Gemini `text-embedding-004`, retrieves top-k relevant chunks, and generates grounded answers with source citations.
+- **Real-Time Progress** — Server-Sent Events (SSE) stream pipeline progress to a live progress bar in the browser.
 
 ---
 
 ## 🏗️ Architecture
 
 ```mermaid
-graph TD
-    A[User Browser<br/>React + Vite] -->|PDF Upload / Q&A REST calls| B[Spring Boot API<br/>:8080]
-    B -->|PDF Text Extraction| C[Apache PDFBox]
-    B -->|Structured Analysis Prompt| D[Google Gemini 2.5 Flash API]
-    B -->|Semantic Q&A Prompt| D
-    D -->|JSON / Text Response| B
-    B -->|Analysis Result / Answer| A
+graph LR
+    subgraph Frontend ["papersage_frontend (React + Vite)"]
+        A[UploadPage] -->|PDF file| B[paperApi.js]
+        C[ResultsPage] -->|question| B
+        B -->|SSE| D[ProgressBar]
+    end
 
-    style A fill:#61DAFB,color:#000
-    style B fill:#6DB33F,color:#fff
-    style C fill:#ff6b35,color:#fff
-    style D fill:#4285F4,color:#fff
+    subgraph Backend ["papersage_backend (Spring Boot)"]
+        E[PaperController]
+        F[PdfExtractionService]
+        G[PaperGuardrailService]
+        H[TextChunkingService]
+        I[SemanticRetrievalService]
+        J[GeminiSummaryService]
+        K[GroundedAnswerService]
+        L[UploadProgressService]
+    end
+
+    subgraph External ["Google Gemini API"]
+        M[Gemini 2.5 Flash]
+        N[text-embedding-004]
+    end
+
+    B -->|POST /api/v1/papers| E
+    B -->|POST /api/v1/papers/ask| E
+    B -->|GET /api/v1/papers/progress| L
+
+    E --> F --> G --> H --> I --> J
+    E --> K
+    I --> N
+    J --> M
+    K --> M
+    G --> M
 ```
-
-**Request Flow:**
-1. The **React frontend** sends a `multipart/form-data` PDF upload to the Spring Boot API.
-2. The backend extracts raw text using **Apache PDFBox**.
-3. The text is passed to **Google Gemini 2.5 Flash** via a structured prompt, which returns summary, contributions, and glossary as structured JSON.
-4. For Q&A, the paper text is chunked and a grounding prompt is constructed before querying Gemini.
-5. Results are returned to the frontend and rendered in a clean UI.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Backend
-| Technology | Version | Role |
-|---|---|---|
-| Java | 21 | Runtime |
-| Spring Boot | 3.x | Web framework |
-| Apache PDFBox | 3.x | PDF text extraction |
-| LangChain4j | Latest | Gemini AI integration |
-| Google Gemini | 2.5 Flash | AI model |
-| Maven | 3.x | Build tool |
-
-### Frontend
-| Technology | Version | Role |
-|---|---|---|
-| React | 18 | UI framework |
-| TypeScript | 5 | Type safety |
-| Vite | 5 | Dev server & bundler |
-| Tailwind CSS | 3 | Styling |
-| Axios | Latest | HTTP client |
+| Layer      | Technology                                                                  |
+| ---------- | --------------------------------------------------------------------------- |
+| Frontend   | React 19, Vite 6, Tailwind CSS 4, JavaScript/JSX                           |
+| Backend    | Java 21, Spring Boot 3.5, Apache PDFBox 3.0, Maven                         |
+| AI / LLM   | Google Gemini 2.5 Flash (analysis & Q&A), Gemini `text-embedding-004` (embeddings) |
+| Streaming  | Server-Sent Events (SSE)                                                   |
 
 ---
 
@@ -91,27 +88,17 @@ graph TD
 
 ```
 papersage/
-├── papersage_backend/          # Spring Boot REST API
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/           # Application source code
-│   │   │   └── resources/      # application.properties, etc.
-│   │   └── test/               # Unit & integration tests
-│   ├── pom.xml
-│   └── README.md               # Backend-specific documentation
+├── papersage_backend/        # Spring Boot REST API
+│   ├── src/main/java/...     #   Controllers, services, DTOs, config
+│   ├── pom.xml               #   Maven build
+│   └── README.md             #   Backend documentation
 │
-├── papersage_frontend/         # React + Vite SPA
-│   ├── src/
-│   │   ├── components/         # Reusable UI components
-│   │   ├── pages/              # Page-level views
-│   │   ├── services/           # API call logic (Axios)
-│   │   └── main.tsx            # App entry point
-│   ├── package.json
-│   ├── vite.config.js
-│   └── README.md               # Frontend-specific documentation
+├── papersage_frontend/       # React SPA
+│   ├── src/                  #   Pages, components, API layer
+│   ├── package.json          #   npm build
+│   └── README.md             #   Frontend documentation
 │
-├── memory-bank/                # Project context documentation
-└── README.md                   # This file
+└── README.md                 # ← You are here
 ```
 
 ---
@@ -120,78 +107,78 @@ papersage/
 
 ### Prerequisites
 
-- **Java 21+** — [Download](https://adoptium.net/)
-- **Maven 3.8+** — [Download](https://maven.apache.org/)
-- **Node.js 18+** — [Download](https://nodejs.org/)
-- **Google Gemini API Key** — [Get one here](https://aistudio.google.com/app/apikey)
+| Tool         | Version |
+| ------------ | ------- |
+| Java (JDK)   | 21+     |
+| Node.js      | 18+     |
+| npm           | 9+      |
+| Gemini API Key | [Get one here](https://aistudio.google.com/apikey) |
 
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/papersage.git
+git clone https://github.com/<your-username>/papersage.git
 cd papersage
 ```
 
-### 2. Start the Backend
+### 2. Start the backend
 
 ```bash
 cd papersage_backend
 
-# Set your Gemini API key (or add to application.properties)
-# Windows
-set GEMINI_API_KEY=your_api_key_here
+# Set your Gemini API key (choose one):
+#   Option A – environment variable
+export GEMINI_API_KEY=your-key-here        # Linux/macOS
+set GEMINI_API_KEY=your-key-here           # Windows CMD
 
-# macOS/Linux
-export GEMINI_API_KEY=your_api_key_here
+#   Option B – application.properties
+#   Add: gemini.api.key=your-key-here
 
-mvn spring-boot:run
+./mvnw spring-boot:run          # Linux/macOS
+mvnw.cmd spring-boot:run        # Windows
 ```
 
-The API will be available at `http://localhost:8080`.
+The API starts at **http://localhost:8080**.
 
-### 3. Start the Frontend
-
-Open a new terminal:
+### 3. Start the frontend
 
 ```bash
 cd papersage_frontend
-
-# Copy the example env file and fill in your values
-cp .env.example .env
-
 npm install
+
+# (Optional) Create .env from the example:
+cp .env.example .env
+# Default VITE_API_BASE_URL is http://localhost:8080
+
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+The app opens at **http://localhost:5173**.
 
 ---
 
-## 📚 Documentation
+## 📡 API Overview
 
-| Link | Description |
-|---|---|
-| [Backend README](./papersage_backend/README.md) | API reference, configuration, build details |
-| [Frontend README](./papersage_frontend/README.md) | Component overview, environment setup, build |
+All endpoints are under the base path `/api/v1/papers`.
 
----
+| Method | Endpoint                       | Description                                  |
+| ------ | ------------------------------ | -------------------------------------------- |
+| `POST` | `/api/v1/papers`               | Upload a PDF → returns structured analysis   |
+| `GET`  | `/api/v1/papers/progress`      | SSE stream of pipeline progress events       |
+| `POST` | `/api/v1/papers/ask?question=` | Ask a question → grounded answer with sources |
+| `POST` | `/api/v1/papers/query?question=` | Retrieve top matching text chunks            |
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'feat: add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+> See the [Backend README](./papersage_backend/README.md) for full API reference with request/response schemas.
 
 ---
 
-## 📄 License
+## 📚 Further Reading
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+- [**Backend README**](./papersage_backend/README.md) — API reference, DTOs, services, configuration, error handling
+- [**Frontend README**](./papersage_frontend/README.md) — Components, pages, environment variables, build commands
 
 ---
 
-<div align="center">
-  <sub>Built with ☕ Java, ⚛️ React, and 🤖 Google Gemini</sub>
-</div>
+## 📝 License
+
+This project is for educational and personal use. See the repository for license details.
