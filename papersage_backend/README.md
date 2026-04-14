@@ -1,66 +1,40 @@
-# 🔧 PaperSage — Backend
+# ⚙️ PaperSage Backend
 
-> Spring Boot REST API powering AI-driven research paper analysis and semantic Q&A.
+**Spring Boot REST API for AI-powered research paper analysis**
 
-![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen?logo=springboot&logoColor=white)
-![Maven](https://img.shields.io/badge/Maven-3.x-C71A36?logo=apachemaven&logoColor=white)
-![PDFBox](https://img.shields.io/badge/Apache%20PDFBox-3.x-ff6b35)
-![Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-4285F4?logo=google&logoColor=white)
-
----
-
-## 📖 Overview
-
-The PaperSage backend is a Java 21 / Spring Boot 3 REST service responsible for:
-
-1. **Accepting PDF uploads** and extracting raw text using Apache PDFBox.
-2. **Generating structured analysis** (summary, key contributions, glossary) via Google Gemini 2.5 Flash.
-3. **Answering semantic questions** about uploaded papers by grounding Gemini responses in the paper's extracted text.
+[![Java 21](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
+[![Maven](https://img.shields.io/badge/Maven-Wrapper-C71A36?logo=apachemaven)](https://maven.apache.org/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-API-4285F4?logo=google)](https://ai.google.dev/)
 
 ---
 
-## 🏗️ Architecture
+## Overview
 
-```mermaid
-graph TD
-    Client["React Frontend<br/>:5173"] -->|"POST /api/v1/papers<br/>(multipart/form-data)"| Controller
+The PaperSage backend is a Spring Boot 3.5 REST API (Java 21) that handles the full paper-analysis pipeline:
 
-    subgraph "Spring Boot Application (:8080)"
-        Controller["PaperController<br/>(REST Layer)"]
-        Controller --> PDFService["PdfExtractionService<br/>(PDFBox)"]
-        Controller --> ChunkService["TextChunkingService"]
-        Controller --> AIService["GeminiSummaryService"]
-        Controller --> QAService["GroundedAnswerService<br/>(Chunking + Q&A)"]
-    end
+1. **Extract** text from an uploaded PDF using Apache PDFBox
+2. **Classify** the document as a CS research paper (guardrail via Gemini)
+3. **Chunk** the text into overlapping segments for embedding
+4. **Embed** each chunk with Gemini `gemini-embedding-001`
+5. **Analyze** the full paper with Gemini 2.5 Flash to produce a structured summary
+6. **Answer** follow-up questions using RAG (Retrieval-Augmented Generation)
 
-    PDFService -->|"Raw Text"| Controller
-    ChunkService -->|"Text Chunks"| Controller
-    AIService -->|"Structured JSON"| Controller
-    QAService -->|"Grounded Answer"| Controller
+Real-time progress is streamed to the frontend via **Server-Sent Events (SSE)**.
 
-    AIService <-->|"Prompt / Response"| Gemini["Google Gemini<br/>2.5 Flash API"]
+---
 
-    Controller -->|"JSON Response"| Client
+## 🛠️ Tech Stack
 
-    style Client fill:#61DAFB,color:#000
-    style Gemini fill:#4285F4,color:#fff
-    style Controller fill:#6DB33F,color:#fff
-    style PDFService fill:#ff6b35,color:#fff
-    style ChunkService fill:#a6116d,color:#fff
-    style AIService fill:#4285F4,color:#fff
-    style QAService fill:#6DB33F,color:#fff
-```
-
-### Layers
-
-| Layer | Responsibility |
-|---|---|
-| **Controller** | Receives HTTP requests, validates input, returns responses |
-| **Service** | Orchestrates PDF extraction + AI analysis |
-| **PdfExtractionService** | Uses Apache PDFBox to extract raw text from uploaded PDFs |
-| **GeminiAiService** | Constructs structured prompts and calls the Gemini API |
-| **PaperQAService** | Chunks paper text, builds grounding context, and answers user questions |
+| Technology           | Version  | Purpose                                |
+| -------------------- | -------- | -------------------------------------- |
+| Java (JDK)           | 21       | Language runtime                       |
+| Spring Boot          | 3.5.11   | Web framework & dependency injection   |
+| Apache PDFBox        | 3.0.5    | PDF text extraction                    |
+| Google GenAI SDK     | 1.1.0    | Gemini API client (summary, embeddings, Q&A) |
+| Jackson              | (bundled)| JSON serialization of DTOs             |
+| SLF4J / Logback      | (bundled)| Logging                                |
+| Maven Wrapper        | —        | Build tool (no global install needed)  |
 
 ---
 
@@ -68,166 +42,277 @@ graph TD
 
 ```
 papersage_backend/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/papersage/
-│   │   │       ├── PapersageApplication.java      # Spring Boot entry point
-│   │   │       ├── controller/
-│   │   │       │   └── PaperController.java        # REST endpoints
-│   │   │       ├── service/
-│   │   │       │   ├── PaperService.java            # Core orchestration
-│   │   │       │   ├── PdfExtractionService.java    # PDF → text
-│   │   │       │   ├── GeminiAiService.java         # Gemini integration
-│   │   │       │   └── PaperQAService.java          # Semantic Q&A
-│   │   │       ├── model/
-│   │   │       │   ├── PaperAnalysis.java           # Analysis result record
-│   │   │       │   ├── GlossaryEntry.java           # Term + definition record
-│   │   │       │   └── QARequest.java               # Q&A request record
-│   │   │       └── config/
-│   │   │           └── WebConfig.java               # CORS configuration
-│   │   └── resources/
-│   │       └── application.properties               # App configuration
-│   └── test/
-│       └── java/
-│           └── com/papersage/                       # Unit & integration tests
-├── pom.xml
-├── mvnw / mvnw.cmd                                  # Maven wrapper
-└── README.md
+├── src/main/java/com/anthonyrodriguez/papersage_backend/
+│   ├── PapersageBackendApplication.java      # Spring Boot entry point
+│   │
+│   ├── config/
+│   │   ├── GeminiConfig.java                 # Gemini API client bean
+│   │   └── WebConfig.java                    # CORS configuration
+│   │
+│   ├── controller/
+│   │   └── PaperController.java              # REST endpoints
+│   │
+│   ├── dto/
+│   │   ├── PaperAnalysisResponse.java        # Structured analysis result
+│   │   ├── AnswerResponse.java               # Grounded Q&A answer
+│   │   ├── QueryResponse.java                # Raw chunk retrieval result
+│   │   ├── RetrievalResult.java              # Single retrieved chunk + score
+│   │   ├── GlossaryEntry.java                # Term + definition pair
+│   │   ├── PrerequisiteKnowledge.java        # Math & AI/ML topic lists
+│   │   ├── ErrorResponse.java                # Standard error payload
+│   │   ├── SourceReference.java              # Source citation in answers
+│   │   ├── TextChunk.java                    # Text segment with metadata
+│   │   └── EmbeddedChunk.java                # Chunk + float[] embedding
+│   │
+│   ├── exception/
+│   │   ├── GlobalExceptionHandler.java       # @ControllerAdvice error handler
+│   │   └── NotACsResearchPaperException.java # Guardrail rejection
+│   │
+│   └── service/
+│       ├── GeminiEmbeddingService.java       # Embed text via Gemini
+│       ├── GeminiSummaryService.java         # Structured analysis via Gemini
+│       ├── GroundedAnswerService.java        # RAG-powered Q&A
+│       ├── PaperGuardrailService.java        # CS paper classification
+│       ├── PdfExtractionService.java         # PDFBox text extraction
+│       ├── SemanticRetrievalService.java     # Chunk indexing & retrieval
+│       ├── TextChunkingService.java          # Overlapping text chunking
+│       └── UploadProgressService.java        # SSE progress broadcasting
+│
+├── src/main/resources/
+│   ├── application.yaml                      # App configuration
+│   ├── secrets.properties                    # Gemini API key (git-ignored)
+│   └── prompts/                              # LLM prompt templates
+│
+├── src/test/java/...                         # Unit tests
+├── pom.xml                                   # Maven build file
+├── mvnw / mvnw.cmd                           # Maven Wrapper scripts
+└── README.md                                 # ← You are here
 ```
 
 ---
 
-## 🌐 API Reference
+## 📡 API Reference
 
-### Base URL
+Base path: `/api/v1/papers`
+
+### Upload Paper
+
 ```
-http://localhost:8080/api/v1
-```
-
----
-
-### `POST /api/papers`
-
-Upload a PDF and receive a full structured analysis.
-
-**Request**
-
-| Type | Value |
-|---|---|
-| Content-Type | `multipart/form-data` |
-| Body param | `file` — the PDF file (max 50 MB) |
-
-```bash
-curl -X POST http://localhost:8080/api/papers/upload \
-  -F "file=@my_paper.pdf"
+POST /api/v1/papers
+Content-Type: multipart/form-data
 ```
 
-**Response `200 OK`**
+| Parameter | Type             | Required | Description              |
+| --------- | ---------------- | -------- | ------------------------ |
+| `file`    | `multipart/file` | ✅       | PDF file (max 50 MB)     |
+
+**Success Response** — `200 OK`
 
 ```json
 {
-  "paperId": "a1b2c3d4-...",
-  "title": "Attention Is All You Need",
-  "summary": [
-    "Introduces the Transformer architecture based solely on attention mechanisms.",
-    "Eliminates recurrence and convolutions entirely.",
-    "..."
+  "executiveSummary": [
+    "The paper introduces a novel transformer architecture...",
+    "Experiments show a 15% improvement over baseline..."
   ],
   "keyContributions": [
-    "Multi-head self-attention mechanism",
-    "Positional encoding scheme",
-    "..."
+    "A new attention mechanism that reduces complexity...",
+    "State-of-the-art results on three benchmarks..."
   ],
   "glossary": [
+    { "term": "Transformer", "definition": "A neural network architecture based on self-attention..." },
+    { "term": "BLEU Score", "definition": "A metric for evaluating machine translation quality..." }
+  ],
+  "prerequisiteKnowledge": {
+    "mathTopics": ["Linear Algebra", "Probability Theory"],
+    "aiMlTopics": ["Attention Mechanisms", "Sequence-to-Sequence Models"]
+  }
+}
+```
+
+**Error Responses:**
+
+| Status | Condition                          |
+| ------ | ---------------------------------- |
+| `400`  | Empty file or non-PDF content type |
+| `413`  | File exceeds 50 MB limit          |
+| `422`  | Document is not a CS research paper |
+| `500`  | PDF extraction or Gemini API error |
+
+---
+
+### Pipeline Progress (SSE)
+
+```
+GET /api/v1/papers/progress
+Accept: text/event-stream
+```
+
+Opens a Server-Sent Events stream. The frontend should subscribe **before** calling the upload endpoint. Events are named `progress` with JSON data:
+
+```json
+{
+  "stage": "embedding",
+  "message": "Embedding chunk 5 of 42…",
+  "percent": 35
+}
+```
+
+Pipeline stages in order: `extracting` → `classifying` → `chunking` → `embedding` → `analyzing` → `complete`
+
+**Timeout:** 120 seconds
+
+---
+
+### Ask a Question (RAG)
+
+```
+POST /api/v1/papers/ask?question={question}
+```
+
+| Parameter  | Type     | Required | Description                           |
+| ---------- | -------- | -------- | ------------------------------------- |
+| `question` | `string` | ✅       | Natural-language question about the paper |
+
+**Success Response** — `200 OK`
+
+```json
+{
+  "question": "What optimization algorithm was used?",
+  "answer": "The authors used AdamW with a learning rate of 3e-4...",
+  "sources": [
     {
-      "term": "Self-Attention",
-      "definition": "A mechanism that allows each position in a sequence to attend to all other positions."
-    },
-    "..."
+      "chunkId": "chunk-12",
+      "chunkIndex": 12,
+      "sectionLabel": "Training Details",
+      "similarityScore": 0.87
+    }
   ]
 }
 ```
 
-**Error Responses**
-
-| Status | Reason |
-|---|---|
-| `400 Bad Request` | No file provided or file is not a PDF |
-| `413 Payload Too Large` | File exceeds 50 MB limit |
-| `500 Internal Server Error` | PDF extraction or AI call failed |
+> Requires a paper to have been uploaded first (chunks must be indexed in memory).
 
 ---
 
-### `POST /api/papers/{paperId}/ask`
+### Retrieve Chunks (Raw)
 
-Ask a semantic question about a previously uploaded paper.
-
-**Request**
-
-| Type | Value |
-|---|---|
-| Content-Type | `application/json` |
-| Path param | `paperId` — ID returned from upload |
-
-```bash
-curl -X POST http://localhost:8080/api/papers/a1b2c3d4-.../ask \
-  -H "Content-Type: application/json" \
-  -d '{ "question": "What datasets were used to evaluate the model?" }'
+```
+POST /api/v1/papers/query?question={question}
 ```
 
-**Response `200 OK`**
+| Parameter  | Type     | Required | Description                |
+| ---------- | -------- | -------- | -------------------------- |
+| `question` | `string` | ✅       | Query for semantic search  |
+
+**Success Response** — `200 OK`
 
 ```json
 {
-  "question": "What datasets were used to evaluate the model?",
-  "answer": "The authors evaluated their model on the WMT 2014 English-to-German and English-to-French translation tasks..."
+  "question": "What datasets were used?",
+  "topChunks": [
+    {
+      "chunk": {
+        "chunkId": "chunk-7",
+        "chunkText": "We evaluate on CIFAR-10, ImageNet, and...",
+        "chunkIndex": 7,
+        "sectionLabel": "Experiments"
+      },
+      "similarityScore": 0.92
+    }
+  ]
 }
 ```
 
-**Error Responses**
+---
 
-| Status | Reason |
-|---|---|
-| `404 Not Found` | `paperId` does not exist |
-| `400 Bad Request` | Question field is missing or empty |
+## 📦 Data Models (DTOs)
+
+All DTOs use Java 21 `record` types for immutability.
+
+| Record                    | Fields                                                                 |
+| ------------------------- | ---------------------------------------------------------------------- |
+| `PaperAnalysisResponse`   | `executiveSummary: List<String>`, `keyContributions: List<String>`, `glossary: List<GlossaryEntry>`, `prerequisiteKnowledge: PrerequisiteKnowledge` |
+| `GlossaryEntry`           | `term: String`, `definition: String`                                   |
+| `PrerequisiteKnowledge`   | `mathTopics: List<String>`, `aiMlTopics: List<String>`                 |
+| `AnswerResponse`          | `question: String`, `answer: String`, `sources: List<SourceReference>` |
+| `SourceReference`         | `chunkId: String`, `chunkIndex: int`, `sectionLabel: String`, `similarityScore: double` |
+| `QueryResponse`           | `question: String`, `topChunks: List<RetrievalResult>`                 |
+| `RetrievalResult`         | `chunk: TextChunk`, `similarityScore: double`                          |
+| `TextChunk`               | `chunkId: String`, `chunkText: String`, `chunkIndex: int`, `sectionLabel: String` |
+| `EmbeddedChunk`           | `chunk: TextChunk`, `embedding: float[]`                               |
+| `ErrorResponse`           | `error: String`, `message: String`                                     |
 
 ---
 
 ## ⚙️ Configuration
 
-All configuration lives in `src/main/resources/application.properties`. Sensitive values should be provided via environment variables.
+### `application.yaml`
 
-### Required
+```yaml
+spring:
+  application:
+    name: papersage_backend
+  config:
+    import: optional:classpath:secrets.properties
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 50MB
 
-| Property | Env Variable | Description |
-|---|---|---|
-| `gemini.api.key` | `GEMINI_API_KEY` | Your Google Gemini API key |
+app:
+  cors:
+    allowed-origins: "http://localhost:3000,http://localhost:5173"
+```
 
-### Optional / Defaults
+| Property                              | Default              | Description                       |
+| ------------------------------------- | -------------------- | --------------------------------- |
+| `spring.application.name`             | `papersage_backend`  | Application name                  |
+| `spring.config.import`                | `optional:classpath:secrets.properties` | Imports API key file |
+| `spring.servlet.multipart.max-file-size` | `50MB`            | Maximum upload file size          |
+| `spring.servlet.multipart.max-request-size` | `50MB`         | Maximum request size              |
+| `app.cors.allowed-origins`            | `localhost:3000,5173`| Allowed CORS origins              |
 
-| Property | Default | Description |
-|---|---|---|
-| `server.port` | `8080` | Port the API runs on |
-| `spring.servlet.multipart.max-file-size` | `50MB` | Max PDF upload size |
-| `spring.servlet.multipart.max-request-size` | `50MB` | Max HTTP request size |
-| `cors.allowed-origins` | `http://localhost:5173` | Allowed frontend origins |
+### `secrets.properties`
 
-### Example `application.properties`
+Create this file at `src/main/resources/secrets.properties` (git-ignored):
 
 ```properties
-# Server
-server.port=8080
+gemini.api.key=your-gemini-api-key-here
+```
 
-# Gemini AI
-gemini.api.key=${GEMINI_API_KEY}
+> Alternatively, set the `GEMINI_API_KEY` environment variable instead of using the file.
 
-# File Upload
-spring.servlet.multipart.max-file-size=50MB
-spring.servlet.multipart.max-request-size=50MB
+### CORS
 
-# CORS
-cors.allowed-origins=http://localhost:5173
+The `WebConfig` class allows cross-origin requests from:
+- `http://localhost:3000`
+- `http://localhost:5173`
+
+for all `/api/**` routes with methods `GET`, `POST`, `PUT`, `DELETE`, and `OPTIONS`.
+
+---
+
+## 🔥 Error Handling
+
+The `GlobalExceptionHandler` (`@ControllerAdvice`) maps exceptions to consistent JSON error responses:
+
+| Exception                        | HTTP Status | Error Key                    |
+| -------------------------------- | ----------- | ---------------------------- |
+| `NotACsResearchPaperException`   | `422`       | `not_cs_research_paper`      |
+| `MaxUploadSizeExceededException` | `413`       | `file_too_large`             |
+| `MissingServletRequestPartException` | `400`   | `missing_file`               |
+| `ApiException` (Gemini)          | `502`       | `gemini_api_error`           |
+| `IOException`                    | `500`       | `io_error`                   |
+| Any other `Exception`            | `500`       | `internal_error`             |
+
+All error responses follow the schema:
+
+```json
+{
+  "error": "not_cs_research_paper",
+  "message": "The uploaded document does not appear to be a Computer Science research paper."
+}
 ```
 
 ---
@@ -236,81 +321,51 @@ cors.allowed-origins=http://localhost:5173
 
 ### Prerequisites
 
-- **Java 21** — [Download Temurin 21](https://adoptium.net/)
-- **Maven 3.8+** — [Download](https://maven.apache.org/) *(or use the included Maven Wrapper)*
-- **Google Gemini API Key** — [Get one here](https://aistudio.google.com/app/apikey)
+- **Java 21** — [Download](https://adoptium.net/)
+- **Gemini API Key** — [Get one here](https://aistudio.google.com/apikey)
 
-### 1. Set Environment Variables
-
-**Windows (CMD)**
-```cmd
-set GEMINI_API_KEY=your_api_key_here
-```
-
-**Windows (PowerShell)**
-```powershell
-$env:GEMINI_API_KEY = "your_api_key_here"
-```
-
-**macOS / Linux**
-```bash
-export GEMINI_API_KEY=your_api_key_here
-```
-
-### 2. Build
+### Run
 
 ```bash
-# Compile and verify the project
-mvn clean compile
+# 1. Navigate to the backend directory
+cd papersage_backend
 
-# Run all tests
-mvn clean verify
+# 2. Set your Gemini API key (choose one):
+
+#   Option A – environment variable
+export GEMINI_API_KEY=your-key-here        # Linux/macOS
+set GEMINI_API_KEY=your-key-here           # Windows CMD
+$env:GEMINI_API_KEY="your-key-here"        # PowerShell
+
+#   Option B – secrets.properties file (recommended)
+#   Create src/main/resources/secrets.properties with:
+#     gemini.api.key=your-key-here
+#   (Already imported by application.yaml via spring.config.import)
+
+# 3. Build and run
+./mvnw spring-boot:run          # Linux/macOS
+mvnw.cmd spring-boot:run        # Windows
 ```
 
-### 3. Run
+The API will be available at **http://localhost:8080**.
+
+### Verify
 
 ```bash
-# Using Maven
-mvn spring-boot:run
-
-# OR using the Maven Wrapper (no Maven installation required)
-./mvnw spring-boot:run        # macOS/Linux
-mvnw.cmd spring-boot:run      # Windows
+curl http://localhost:8080/api/v1/papers/progress
+# Should open an SSE stream (Ctrl+C to close)
 ```
 
-The API will be available at **`http://localhost:8080`**.
-
-### 4. Build a Production JAR
+### Build Only
 
 ```bash
-mvn clean package -DskipTests
-java -jar target/papersage-backend-*.jar
+./mvnw clean compile        # Compile without running
+./mvnw clean package        # Build JAR
 ```
 
 ---
 
-## 🧪 Testing
+## 🔗 Related
 
-```bash
-# Run all unit and integration tests
-mvn clean verify
-
-# Run tests with coverage report
-mvn clean verify jacoco:report
-```
-
----
-
-## 🐛 Known Issues & Status
-
-- Paper state is currently **in-memory only** — restarting the server clears all uploaded papers.
-- Very large PDFs (>30 pages) may approach Gemini's context window; chunking is applied for Q&A but analysis prompts use full text.
-- PDF files with complex layouts or scanned images may produce lower-quality text extraction.
-
----
-
-## 📄 License
-
-MIT — see the root [LICENSE](../LICENSE) file for details.
-
-← [Back to root README](../README.md)
+- [**Root README**](../README.md) — Project overview & quick start
+- [**Frontend README**](../papersage_frontend/README.md) — React SPA documentation
