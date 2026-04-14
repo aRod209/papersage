@@ -21,7 +21,7 @@ import java.util.function.BiConsumer;
 /**
  * Generates text embeddings using the Gemini Embedding API.
  *
- * <p>Uses the {@code text-embedding-004} model (768 dimensions) with task-type
+ * <p>Uses the {@code gemini-embedding-001} model (3072 dimensions) with task-type
  * hints to optimize vectors for retrieval:</p>
  * <ul>
  *   <li>{@code RETRIEVAL_DOCUMENT} — for paper chunk embeddings (stored)</li>
