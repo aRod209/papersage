@@ -1,61 +1,34 @@
-# 🎨 PaperSage — Frontend
+# 🖥️ PaperSage Frontend
 
-> React + Vite single-page application for AI-powered research paper analysis.
+**React SPA for AI-powered research paper analysis**
 
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
-![Axios](https://img.shields.io/badge/Axios-HTTP%20Client-5A29E4?logo=axios&logoColor=white)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
+[![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)](https://vite.dev/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
 
 ---
 
-## 📖 Overview
+## Overview
 
-The PaperSage frontend is a responsive single-page application (SPA) built with **React 18**, **TypeScript**, and **Vite**. It provides a clean, intuitive interface for:
+The PaperSage frontend is a single-page application built with **React 19**, **Vite 6**, and **Tailwind CSS 4**. It provides an intuitive interface for uploading CS research papers and exploring AI-generated analysis results.
 
-- Uploading CS research paper PDFs
-- Viewing AI-generated structured analysis (summary, contributions, glossary)
-- Asking semantic questions about uploaded papers via a chat-style interface
+### User Flow
 
-The frontend communicates exclusively with the [PaperSage Backend API](../papersage_backend/README.md) running at `http://localhost:8080`.
-
----
-
-## ✨ Features
-
-| Feature | Description |
-|---|---|
-| 📤 **PDF Upload** | Drag-and-drop or file picker to upload research papers |
-| 📋 **Structured Analysis** | Collapsible sections for summary, contributions, and glossary |
-| 💬 **Q&A Interface** | Chat-style panel for asking questions about the paper |
-| 📱 **Responsive Design** | Works on desktop and tablet screen sizes |
-| ⚡ **Fast Dev Server** | Vite HMR for instant feedback during development |
+1. **Upload** — Drag & drop (or click to select) a PDF on the upload page
+2. **Progress** — Watch real-time pipeline progress via a live progress bar (SSE-powered)
+3. **Results** — Browse the structured analysis: executive summary, key contributions, glossary, and prerequisite knowledge
+4. **Ask** — Ask follow-up questions about the paper and receive grounded answers with source citations
 
 ---
 
-## 🖼️ UI Structure
+## 🛠️ Tech Stack
 
-```mermaid
-graph TD
-    App["App.tsx<br/>(Root)"]
-    App --> UploadPage["UploadPage<br/>(PDF Upload UI)"]
-    App --> AnalysisPage["AnalysisPage<br/>(Results View)"]
-
-    UploadPage --> UploadCard["UploadCard<br/>(Drag & Drop Zone)"]
-
-    AnalysisPage --> SummarySection["SummarySection<br/>(Bullet Points)"]
-    AnalysisPage --> ContributionsSection["ContributionsSection<br/>(Bullet Points)"]
-    AnalysisPage --> GlossarySection["GlossarySection<br/>(Term + Definition)"]
-    AnalysisPage --> QAPanel["QAPanel<br/>(Chat Interface)"]
-
-    QAPanel --> QAInput["QAInput<br/>(Question Input)"]
-    QAPanel --> QAResponse["QAResponse<br/>(Answer Display)"]
-
-    style App fill:#61DAFB,color:#000
-    style UploadPage fill:#646CFF,color:#fff
-    style AnalysisPage fill:#646CFF,color:#fff
-```
+| Technology      | Version | Purpose                          |
+| --------------- | ------- | -------------------------------- |
+| React           | 19.1    | UI component library             |
+| Vite            | 6.3     | Build tool & dev server          |
+| Tailwind CSS    | 4.1     | Utility-first CSS framework      |
+| JavaScript/JSX  | ES2020  | Language                         |
 
 ---
 
@@ -63,53 +36,93 @@ graph TD
 
 ```
 papersage_frontend/
-├── public/                     # Static assets (favicon, etc.)
+├── public/
+│   ├── favicon.svg               # App favicon
+│   └── icons.svg                 # UI icons
+│
 ├── src/
-│   ├── components/             # Reusable UI components
-│   │   ├── UploadCard.tsx      # PDF drag-and-drop upload zone
-│   │   ├── SummarySection.tsx  # Executive summary display
-│   │   ├── ContributionsSection.tsx  # Key contributions display
-│   │   ├── GlossarySection.tsx # Glossary term/definition display
-│   │   └── QAPanel.tsx         # Semantic Q&A chat interface
-│   ├── pages/
-│   │   ├── UploadPage.tsx      # Main upload screen
-│   │   └── AnalysisPage.tsx    # Analysis results screen
-│   ├── services/
-│   │   └── api.ts              # Axios API calls (upload, ask)
-│   ├── types/
-│   │   └── index.ts            # TypeScript interfaces & types
-│   ├── App.tsx                 # Root component & routing
-│   └── main.tsx                # Application entry point
-├── index.html                  # HTML shell
-├── .env.example                # Example environment variables
-├── .env                        # Your local env (git-ignored)
-├── package.json
-├── tsconfig.json
-├── vite.config.js
-└── README.md
+│   ├── main.jsx                  # React entry point (renders <App />)
+│   ├── App.jsx                   # Root component — manages view state
+│   ├── index.css                 # Global styles (Tailwind imports)
+│   │
+│   ├── api/
+│   │   └── paperApi.js           # API client (upload, ask question)
+│   │
+│   ├── assets/
+│   │   ├── hero.png              # Landing page hero image
+│   │   ├── typescript.svg        # Asset
+│   │   └── vite.svg              # Asset
+│   │
+│   ├── components/
+│   │   ├── AskSection.jsx        # Q&A input + answer display
+│   │   ├── GlossaryTable.jsx     # Term/definition table
+│   │   ├── LoadingSpinner.jsx    # Spinner animation
+│   │   ├── PrerequisiteSection.jsx # Math & AI/ML topic lists
+│   │   ├── ProgressBar.jsx       # Real-time upload progress bar
+│   │   ├── SourceBadge.jsx       # Chunk source citation badge
+│   │   ├── SummarySection.jsx    # Executive summary & key contributions
+│   │   └── UploadDropzone.jsx    # Drag-and-drop PDF upload area
+│   │
+│   └── pages/
+│       ├── UploadPage.jsx        # Landing page with upload dropzone
+│       └── ResultsPage.jsx       # Analysis results + Q&A interface
+│
+├── index.html                    # HTML shell
+├── vite.config.js                # Vite configuration
+├── tsconfig.json                 # TypeScript/JS config
+├── package.json                  # Dependencies & scripts
+├── .env.example                  # Example environment variables
+└── README.md                     # ← You are here
 ```
+
+---
+
+## 🧩 Components
+
+### Pages
+
+| Component      | Description                                                                 |
+| -------------- | --------------------------------------------------------------------------- |
+| `UploadPage`   | Landing page with drag-and-drop upload, SSE progress stream, and error handling. Calls `openProgressStream()` before upload and `closeProgressStream()` on completion. |
+| `ResultsPage`  | Displays the full analysis (summary, contributions, glossary, prerequisites) and hosts the Q&A section. Includes a "Reset" action to upload a new paper. |
+
+### UI Components
+
+| Component             | Description                                                        |
+| --------------------- | ------------------------------------------------------------------ |
+| `UploadDropzone`      | Drag-and-drop zone for PDF files. Validates file type before upload. |
+| `ProgressBar`         | Animated progress bar that reflects real-time SSE pipeline events.  |
+| `LoadingSpinner`      | Generic loading spinner for async operations.                      |
+| `SummarySection`      | Renders executive summary and key contributions as bullet lists.   |
+| `GlossaryTable`       | Displays glossary entries in a styled term/definition table.       |
+| `PrerequisiteSection` | Shows math and AI/ML prerequisite topics in categorized lists.     |
+| `AskSection`          | Text input for asking questions, displays answer + source badges.  |
+| `SourceBadge`         | Small badge showing section label and similarity score for a source citation. |
+
+### API Layer
+
+| Function         | Method | Endpoint                        | Description                        |
+| ---------------- | ------ | ------------------------------- | ---------------------------------- |
+| `uploadPaper(file)` | `POST` | `/api/v1/papers`             | Uploads PDF, returns analysis JSON |
+| `askQuestion(question)` | `POST` | `/api/v1/papers/ask?question=` | Asks a question, returns grounded answer |
+
+The SSE progress stream (`GET /api/v1/papers/progress`) is opened directly in `UploadPage` using the `EventSource` API.
 
 ---
 
 ## ⚙️ Environment Variables
 
-Copy `.env.example` to `.env` before starting the development server:
+Copy the example file and configure as needed:
 
 ```bash
 cp .env.example .env
 ```
 
-| Variable | Default | Description |
-|---|---|---|
-| `VITE_API_BASE_URL` | `http://localhost:8080` | Base URL of the PaperSage backend API |
+| Variable              | Default                  | Description                      |
+| --------------------- | ------------------------ | -------------------------------- |
+| `VITE_API_BASE_URL`   | `http://localhost:8080`  | Backend API base URL             |
 
-> **Note:** All Vite environment variables must be prefixed with `VITE_` to be accessible in the browser bundle.
-
-### Example `.env`
-
-```env
-VITE_API_BASE_URL=http://localhost:8080
-```
+> All environment variables prefixed with `VITE_` are exposed to the client at build time via Vite's `import.meta.env`.
 
 ---
 
@@ -117,96 +130,53 @@ VITE_API_BASE_URL=http://localhost:8080
 
 ### Prerequisites
 
-- **Node.js 18+** — [Download](https://nodejs.org/)
-- **npm 9+** — bundled with Node.js
-- The **PaperSage backend** running at `http://localhost:8080` — see [Backend README](../papersage_backend/README.md)
+- **Node.js** 18+ — [Download](https://nodejs.org/)
+- **npm** 9+
+- Backend running at `http://localhost:8080` (see [Backend README](../papersage_backend/README.md))
 
-### 1. Install Dependencies
+### Install & Run
 
 ```bash
+# 1. Navigate to the frontend directory
 cd papersage_frontend
+
+# 2. Install dependencies
 npm install
-```
 
-### 2. Configure Environment
-
-```bash
+# 3. (Optional) Create .env from the example
 cp .env.example .env
-# Edit .env and set VITE_API_BASE_URL if the backend runs on a different port
-```
 
-### 3. Start the Development Server
-
-```bash
+# 4. Start the development server
 npm run dev
 ```
 
-The app will be available at **`http://localhost:5173`** with Hot Module Replacement (HMR) enabled.
+The app opens at **http://localhost:5173**.
 
----
-
-## 🔨 Available Scripts
-
-| Script | Command | Description |
-|---|---|---|
-| **dev** | `npm run dev` | Start the Vite dev server with HMR |
-| **build** | `npm run build` | Compile TypeScript and bundle for production |
-| **preview** | `npm run preview` | Preview the production build locally |
-| **lint** | `npm run lint` | Run ESLint on all source files |
-
----
-
-## 📦 Production Build
+### Build for Production
 
 ```bash
-# Build optimized production bundle
+# Build optimized static files
 npm run build
 
-# Preview the production build locally before deploying
+# Preview the production build locally
 npm run preview
 ```
 
-Output will be in the `dist/` directory. This directory is ready to be deployed to any static hosting service (Netlify, Vercel, S3, etc.).
+The production build outputs to `dist/`.
 
 ---
 
-## 🔀 Proxy / CORS Configuration
+## 📜 Available Scripts
 
-During development, Vite is configured to proxy API requests to the backend to avoid CORS issues. This is defined in `vite.config.js`:
-
-```js
-// vite.config.js
-export default defineConfig({
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-    },
-  },
-});
-```
-
-In production, configure your hosting platform or reverse proxy (e.g., Nginx) to route `/api/*` requests to the backend service. Update `VITE_API_BASE_URL` accordingly.
+| Script          | Command             | Description                              |
+| --------------- | ------------------- | ---------------------------------------- |
+| `dev`           | `vite`              | Start development server with HMR        |
+| `build`         | `vite build`        | Build optimized production bundle        |
+| `preview`       | `vite preview`      | Preview production build locally         |
 
 ---
 
-## 🧰 Key Dependencies
+## 🔗 Related
 
-| Package | Purpose |
-|---|---|
-| `react` + `react-dom` | UI framework |
-| `typescript` | Static typing |
-| `vite` | Build tool & dev server |
-| `tailwindcss` | Utility-first CSS framework |
-| `axios` | Promise-based HTTP client for API calls |
-| `react-router-dom` | Client-side routing (if applicable) |
-
----
-
-## 📄 License
-
-MIT — see the root [LICENSE](../LICENSE) file for details.
-
-← [Back to root README](../README.md)
+- [**Root README**](../README.md) — Project overview & quick start
+- [**Backend README**](../papersage_backend/README.md) — Spring Boot API documentation
