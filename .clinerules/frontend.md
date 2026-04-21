@@ -1,6 +1,6 @@
 ---
 paths:
-  - "papersage_frontend/**"    # All files under src/
+  - "papersage_frontend/src/**"    # All files under src/
 ---
 
 # PaperSage Frontend — Cline Rules
