@@ -12,3 +12,8 @@ spring:
 app:
   cors:
     allowed-origins: "http://localhost:3000,http://localhost:5173"
+  embedding:
+    max-concurrency: 4
+    max-attempts: 2
+    initial-backoff-millis: 500
+    completion-timeout-seconds: 30
