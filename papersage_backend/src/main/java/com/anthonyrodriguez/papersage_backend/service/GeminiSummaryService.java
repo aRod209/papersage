@@ -1,8 +1,10 @@
 package com.anthonyrodriguez.papersage_backend.service;
 
 import com.anthonyrodriguez.papersage_backend.dto.PaperAnalysisResponse;
+import com.anthonyrodriguez.papersage_backend.exception.PaperAnalysisGenerationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
+import com.google.genai.errors.ApiException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
@@ -58,9 +60,14 @@ public class GeminiSummaryService {
                 .temperature(MODEL_TEMPERATURE)
                 .build();
 
-        GenerateContentResponse response = client.models.generateContent(MODEL_ID, prompt, config);
-        String rawResponse = Objects.requireNonNull(response.text(),
-                "Gemini response text must not be null");
+        String rawResponse;
+        try {
+            GenerateContentResponse response = client.models.generateContent(MODEL_ID, prompt, config);
+            rawResponse = Objects.requireNonNull(response.text(),
+                    "Gemini response text must not be null");
+        } catch (ApiException e) {
+            throw new PaperAnalysisGenerationException("Failed to generate paper analysis with Gemini", e);
+        }
 
         logger.info("Received analysis response from Gemini ({} chars)", rawResponse.length());
 
@@ -80,9 +87,12 @@ public class GeminiSummaryService {
 
         try {
             return objectMapper.readValue(cleaned, PaperAnalysisResponse.class);
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("Failed to parse Gemini response as JSON. Raw response:\n{}", rawResponse);
-            throw new RuntimeException("Failed to parse AI analysis response. The model returned an unexpected format.", e);
+            throw new PaperAnalysisGenerationException(
+                    "Failed to parse AI analysis response. The model returned an unexpected format.",
+                    e
+            );
         }
     }
 

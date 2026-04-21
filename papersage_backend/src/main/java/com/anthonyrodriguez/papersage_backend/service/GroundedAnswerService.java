@@ -4,7 +4,9 @@ import com.anthonyrodriguez.papersage_backend.dto.AnswerResponse;
 import com.anthonyrodriguez.papersage_backend.dto.RetrievalResult;
 import com.anthonyrodriguez.papersage_backend.dto.SourceReference;
 import com.anthonyrodriguez.papersage_backend.dto.TextChunk;
+import com.anthonyrodriguez.papersage_backend.exception.GroundedAnswerGenerationException;
 import com.google.genai.Client;
+import com.google.genai.errors.ApiException;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
@@ -94,13 +96,18 @@ public class GroundedAnswerService {
                 .build();
 
         logger.info("Sending grounded prompt to Gemini...");
-        GenerateContentResponse response = client.models.generateContent(MODEL_ID, prompt, config);
-        String answer = Objects.requireNonNull(response.text(),
-                "Gemini must not return a null response for the grounded answer");
+        String answer;
+        try {
+            GenerateContentResponse response = client.models.generateContent(MODEL_ID, prompt, config);
+            answer = Objects.requireNonNull(response.text(),
+                    "Gemini must not return a null response for the grounded answer");
+        } catch (ApiException e) {
+            throw new GroundedAnswerGenerationException("Failed to generate grounded answer with Gemini", e);
+        }
 
         if (answer.isBlank()) {
             logger.error("Gemini returned a blank response for grounded answer");
-            throw new RuntimeException("Gemini returned an empty response for the grounded answer.");
+            throw new GroundedAnswerGenerationException("Gemini returned an empty response for the grounded answer.");
         }
 
         String trimmedAnswer = answer.strip();

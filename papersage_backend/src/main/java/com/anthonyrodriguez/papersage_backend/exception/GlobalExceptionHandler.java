@@ -61,7 +61,43 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse("AI_SERVICE_UNAVAILABLE",
-                        "Failed to generate analysis. The AI service is currently unavailable. Please try again later."));
+                        "The AI service is currently unavailable. Please try again later."));
+    }
+
+    @ExceptionHandler(EmbeddingGenerationException.class)
+    public ResponseEntity<ErrorResponse> handleEmbeddingGenerationException(EmbeddingGenerationException ex) {
+        logger.error("Embedding generation failed: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("EMBEDDING_SERVICE_UNAVAILABLE",
+                        "Failed to generate embeddings. The AI embedding service is currently unavailable. Please try again later."));
+    }
+
+    @ExceptionHandler(PaperAnalysisGenerationException.class)
+    public ResponseEntity<ErrorResponse> handlePaperAnalysisGenerationException(PaperAnalysisGenerationException ex) {
+        logger.error("Paper analysis generation failed: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("ANALYSIS_SERVICE_UNAVAILABLE",
+                        "Failed to generate analysis. The AI analysis service is currently unavailable. Please try again later."));
+    }
+
+    @ExceptionHandler(GuardrailClassificationException.class)
+    public ResponseEntity<ErrorResponse> handleGuardrailClassificationException(GuardrailClassificationException ex) {
+        logger.error("Guardrail classification failed: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("GUARDRAIL_SERVICE_UNAVAILABLE",
+                        "Failed to classify the uploaded document. The AI guardrail service is currently unavailable. Please try again later."));
+    }
+
+    @ExceptionHandler(GroundedAnswerGenerationException.class)
+    public ResponseEntity<ErrorResponse> handleGroundedAnswerGenerationException(GroundedAnswerGenerationException ex) {
+        logger.error("Grounded answer generation failed: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse("GROUNDING_SERVICE_UNAVAILABLE",
+                        "Failed to generate grounded answer. The AI Q&A service is currently unavailable. Please try again later."));
     }
 
     @ExceptionHandler(RuntimeException.class)

@@ -1,7 +1,9 @@
 package com.anthonyrodriguez.papersage_backend.service;
 
+import com.anthonyrodriguez.papersage_backend.exception.GuardrailClassificationException;
 import com.anthonyrodriguez.papersage_backend.exception.NotACsResearchPaperException;
 import com.google.genai.Client;
+import com.google.genai.errors.ApiException;
 import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import org.slf4j.Logger;
@@ -72,9 +74,14 @@ public class PaperGuardrailService {
                 .temperature(CLASSIFIER_TEMPERATURE)
                 .build();
 
-        GenerateContentResponse response = client.models.generateContent(CLASSIFIER_MODEL, prompt, config);
-        String rawResponse = Objects.requireNonNull(response.text(),
-                "Guardrail classifier must not return a null response");
+        String rawResponse;
+        try {
+            GenerateContentResponse response = client.models.generateContent(CLASSIFIER_MODEL, prompt, config);
+            rawResponse = Objects.requireNonNull(response.text(),
+                    "Guardrail classifier must not return a null response");
+        } catch (ApiException e) {
+            throw new GuardrailClassificationException("Failed to classify paper with AI guardrail", e);
+        }
 
         String classification = rawResponse.strip().toUpperCase();
         logger.info("Guardrail classification result: '{}'", classification);
