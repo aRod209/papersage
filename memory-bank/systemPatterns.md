@@ -59,7 +59,7 @@ Emitter timeout: 120 seconds. Only one emitter active at a time (single-paper se
 2. `UploadProgressService.sendProgress("extracting", …, 10)` → `PdfExtractionService.extractText()` — PDFBox text extraction
 3. `UploadProgressService.sendProgress("classifying", …, 15)` → `PaperGuardrailService.verify()` — LLM guardrail: sends first 3000 chars to `gemini-2.5-flash` at temperature 0.0 for YES/NO; rejects non-CS documents with `NotACsResearchPaperException` (→ HTTP 422)
 4. `UploadProgressService.sendProgress("chunking", …, 20)` → `TextChunkingService.chunkText()` — Split into overlapping chunks
-5. `SemanticRetrievalService.indexChunks(chunks, callback)` → `GeminiEmbeddingService.embedDocuments(texts, callback)` — Embed and store; callback fires `sendProgress("embedding", …, 20–75)` per chunk
+5. `SemanticRetrievalService.indexChunks(chunks, callback)` → `GeminiEmbeddingService.embedDocuments(texts, callback)` — Embed and store with bounded concurrency + retry/backoff + completion timeout; callback fires `sendProgress("embedding", …, 20–75)` per chunk
 6. `UploadProgressService.sendProgress("analyzing", …, 80)` → `GeminiSummaryService.analyzePaper()` — Send full text to Gemini 2.5 Flash, parse JSON response
 7. `UploadProgressService.complete()` (sends `done` event, closes SSE stream)
 8. Return `PaperAnalysisResponse`
@@ -100,7 +100,12 @@ Emitter timeout: 120 seconds. Only one emitter active at a time (single-paper se
 ### Embedding Strategy
 - Model: `gemini-embedding-001` (768 dimensions)
 - Task types: `RETRIEVAL_DOCUMENT` for chunks, `RETRIEVAL_QUERY` for questions
-- One-at-a-time embedding calls (no batching in current implementation)
+- One-request-per-chunk embedding model (no true multi-input batch API call yet)
+- Embedding tuning is externalized via typed Spring config under `app.embedding.*` (`max-concurrency`, `max-attempts`, `initial-backoff-millis`, `completion-timeout-seconds`)
+- `GeminiEmbeddingService` uses a single DI constructor (`Client` + `GeminiEmbeddingProperties`) to avoid constructor ambiguity during context startup
+- Uses Java 21 virtual threads with bounded concurrency (`maxConcurrency`, default 4)
+- Retries transient failures with capped exponential backoff plus jitter (`maxAttempts`, default 2)
+- Applies completion timeout protection (`completionTimeoutSeconds`, default 30s) to avoid indefinite stalls
 
 ### LLM Analysis
 - Model: `gemini-2.5-flash` with temperature 0.3
@@ -149,3 +154,24 @@ Comprehensive logging infrastructure is implemented throughout:
 - **Pipeline stage markers** — `=== Pipeline Start/Complete ===` delimiters for clarity
 - **Truncation helpers** — `truncate()` methods prevent log pollution while showing previews (e.g., 80–200 char limits)
 - **No System.out** — Zero `println` or `printStackTrace()` in codebase per Java rules
+
+## Container Orchestration Pattern (Compose)
+- Root-level `compose.yaml` orchestrates full-stack local runtime with two services:
+  - `backend` (Spring Boot, port `8080`)
+  - `frontend` (Nginx-served Vite build, mapped to host port `5173`)
+- Compose uses modern spec conventions:
+  - `compose.yaml` filename (preferred over legacy `docker-compose.yml`)
+  - no deprecated top-level `version:` field
+- Frontend build arg defaults to backend host URL:
+  - `VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8080}`
+
+### Backend Secret Resolution in Compose
+- Compose supports both key-loading paths for backend Gemini auth:
+  1. environment variable (`GEMINI_API_KEY`)
+  2. mounted file (`/app/secrets/secrets.properties`) via bind mount
+- `SPRING_CONFIG_IMPORT` includes both sources:
+  - `optional:classpath:secrets.properties,optional:file:/app/secrets/secrets.properties`
+- Bind mount default:
+  - `${BACKEND_SECRETS_DIR:-./papersage_backend/src/main/resources}:/app/secrets:ro`
+- Important precedence guard:
+  - avoid forcing empty interpolation defaults for `GEMINI_API_KEY` (e.g., `${GEMINI_API_KEY:-}`), because an explicit empty env can override file-based config.

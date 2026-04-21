@@ -23,6 +23,9 @@
 - ✅ SSE progress endpoint `GET /api/v1/papers/progress` — streams `{ stage, message, percent }` events during upload pipeline
 - ✅ `UploadProgressService` — singleton emitter manager; fires per-stage and per-chunk progress events
 - ✅ Upload pipeline stages: extracting (10%) → classifying (15%) → chunking (20%) → embedding (20–75%) → analyzing (80%) → done
+- ✅ Embedding reliability hardening in `GeminiEmbeddingService` — bounded concurrency, transient retry with exponential backoff, and completion timeout protection
+- ✅ Embedding retry-storm mitigation in `GeminiEmbeddingService` — jittered backoff added and safer defaults set (`max-concurrency: 4`, `max-attempts: 2`)
+- ✅ Spring DI startup fix for Docker/test context — resolved `GeminiEmbeddingService` constructor ambiguity by switching to a single constructor with typed properties (`GeminiEmbeddingProperties`) and `@ConfigurationPropertiesScan`
 
 ### Frontend ✅
 - ✅ Vite + React 19.1.0 project scaffolded in `papersage_frontend/`
@@ -43,26 +46,74 @@
 - ✅ Production build succeeds (`npm run build`) — 0 errors
 - ✅ Georgia Tech brand color theme — Navy `#003057`, Tech Gold `#B3A369`, warm off-white `#F7F5EE` across all 11 frontend files; GT colors defined as CSS custom properties in `index.css` via Tailwind v4 `@theme`
 
+### Documentation ✅ (Audited & Verified)
+- ✅ Root `README.md` — Project overview, shields.io badges, Mermaid architecture diagram (with `GeminiEmbeddingService`), tech stack table, monorepo structure, quick start guide with `secrets.properties` option, API overview, cross-links to sub-READMEs
+- ✅ `papersage_backend/README.md` — Full API reference (4 endpoints with accurate JSON schemas), DTO table (10 records including `SourceReference`), project structure, `application.yaml` config + `secrets.properties` setup, error handling matrix (6 handlers), getting started
+- ✅ `papersage_frontend/README.md` — Component breakdown, API layer docs, env vars, npm scripts, build instructions
+- ✅ Fixed outdated Javadoc in `GeminiEmbeddingService.java` (`text-embedding-004` → `gemini-embedding-001`)
+- ✅ All 3 READMEs audited against source code and corrected: DTO field names, JSON examples, config file names, directory listings, component descriptions
+- ✅ Root `README.md` quick-start wording clarified so Compose startup is explicitly an alternative path and manual backend/frontend startup steps are clearly marked as alternatives
+
+### DevOps ✅
+- ✅ Added `papersage_backend/Dockerfile` for backend containerization
+- ✅ Added `papersage_backend/.dockerignore` for backend Docker build-context hygiene
+- ✅ Dockerfile uses Java 21 **multi-stage** build (`eclipse-temurin:21-jdk` builder → `eclipse-temurin:21-jre` runtime)
+- ✅ Build stage uses **Maven Wrapper** (`mvnw`) for toolchain consistency across local/CI/Docker
+- ✅ Runtime stage runs packaged artifact via `java -jar /app/app.jar` (production-friendly; no Maven at runtime)
+- ✅ Added inline `# What:` and `# Why:` comments above each Docker instruction for maintainability
+- ✅ Added `papersage_frontend/Dockerfile` for frontend containerization (multi-stage Node build → unprivileged Nginx runtime)
+- ✅ Added `papersage_frontend/.dockerignore` for frontend Docker build-context hygiene
+- ✅ Added root-level `compose.yaml` (modern Compose spec naming) to orchestrate backend + frontend together
+- ✅ Compose backend supports both Gemini key sources: env var (`GEMINI_API_KEY`) and mounted `secrets.properties`
+- ✅ Fixed Compose key precedence issue by avoiding forced empty interpolation default for `GEMINI_API_KEY`
+
+### Validation ✅
+- ✅ End-to-end flow validated with a real PDF and a live Gemini API key
+
 ## What's Left to Build
-- ❌ End-to-end test with a real PDF (requires backend running with Gemini API key)
 - ❌ Unit test for `PaperGuardrailService`
 - ❌ Persistent storage (database for chunks/embeddings)
 - ❌ Multi-paper session support
 - ❌ Authentication and authorization
-- ❌ Batch embedding optimization (currently sequential — one call per chunk)
+- ❌ True batch embedding API usage (still one request per chunk; now guarded by concurrency/retry/timeout controls)
 - ❌ Rate limiting / API throttling
 - ❌ Integration tests with a real PDF fixture (for `PdfExtractionService`)
 - ❌ Frontend error handling for guardrail rejection (HTTP 422) — currently shows a generic error; could show a specific "not a CS paper" message
 
 ## Current Status
-**Phase**: Full-stack MVP complete and confirmed building. Backend starts on `http://localhost:8080` (`mvn spring-boot:run`). Frontend dev server runs on `http://localhost:5173` (`npm run dev`). All backend unit tests pass. Frontend production build is clean. **Ready for end-to-end testing with a live Gemini API key.**
+**Phase**: Full-stack MVP complete with documentation and local orchestration. Backend starts on `http://localhost:8080` (`mvn spring-boot:run`). Frontend dev server runs on `http://localhost:5173` (`npm run dev`). Frontend production build is clean. Three comprehensive READMEs created (root, backend, frontend). Backend and frontend both have Dockerfiles + `.dockerignore`, and root `compose.yaml` now orchestrates both services together. Embedding reliability hardening has been implemented (bounded concurrency + retry/backoff + timeout), and Docker/test context startup has been stabilized via config-driven embedding DI. **End-to-end testing with a real PDF and live Gemini API key has been completed.**
 
 ## Known Issues
-- Sequential embedding calls may be slow for large papers with many chunks
+- Not yet using true batch embedding API requests; still one request per chunk
 - Uploading a new paper silently replaces the previous paper's indexed data
 - No validation that the PDF actually contains extractable text (scanned/image PDFs will yield empty text)
 - The guardrail does not have a dedicated unit test yet (PaperGuardrailService is untested in isolation)
 - Frontend shows a generic error for HTTP 422 guardrail rejections; could be made more specific
+
+## Architecture Assessment Snapshot (Quick Scan)
+**Assessment date:** 2026-04-20
+
+**Verdict**
+- ✅ Architecture is strong for MVP scope (single-user, in-memory, fast iteration)
+- ⚠️ Not yet production-ready for multi-user concurrency without targeted refactors
+
+**Top strengths**
+- Clear layered backend design (`Controller -> Service -> DTO`) with constructor injection and centralized exception handling
+- Good decomposition of AI pipeline responsibilities (extract, classify, chunk, embed, retrieve, summarize, answer)
+- Frontend structure is clean and pragmatic for current scope (pages/components/API module)
+
+**Top architecture risks**
+- Global singleton SSE emitter (`UploadProgressService`) introduces cross-user collision risk
+- Global mutable in-memory retrieval index (`SemanticRetrievalService`) can race under concurrent uploads/queries
+- Upload orchestration concentrated in controller boundary (`PaperController`) instead of application workflow layer
+- SSE payloads manually assembled as JSON strings instead of typed event serialization
+
+**Priority refactor order**
+1. Session/job-scoped progress streams (replace global emitter model)
+2. Extract upload orchestration into application/facade workflow service
+3. Concurrency-safe retrieval index strategy (immutable snapshots and/or per-session store)
+4. Typed SSE event DTO serialization
+5. Frontend API boundary cleanup (single API base source + consider JSON body for ask endpoint)
 
 ## Evolution of Project Decisions
 1. **Started with**: Simple PDF upload → text extraction → LLM summary
@@ -77,3 +128,15 @@
 10. **Restyled**: Georgia Tech brand color theme — replaced indigo/slate with Navy `#003057` + Tech Gold `#B3A369` + warm off-white `#F7F5EE`; GT color tokens defined in `index.css` `@theme`
 11. **Added**: CS Guardrail — `PaperGuardrailService` + `classify-paper.txt` + `NotACsResearchPaperException` — rejects non-CS documents at stage 1.5 of the upload pipeline before embedding/analysis
 12. **Corrected**: Java version — `pom.xml` uses Java 21 (not 17 as previously documented)
+13. **Added**: GitHub READMEs — Root (overview + architecture diagram), Backend (full API reference + error handling), Frontend (component breakdown + setup). Fixed stale Javadoc in `GeminiEmbeddingService.java` (`text-embedding-004` → `gemini-embedding-001`)
+14. **Audited**: All 3 READMEs verified against source code — corrected DTO field names, JSON response examples, removed non-existent `PdfExtractionException`, updated `application.properties` → `application.yaml`, added `secrets.properties` config, fixed frontend `public/` listing and `SourceBadge` description
+15. **Added**: Backend containerization baseline — `papersage_backend/Dockerfile` with Maven Wrapper-based build stage, JRE runtime stage, and per-instruction explanatory comments
+16. **Added**: Docker build-context hygiene — `papersage_backend/.dockerignore` and `papersage_frontend/.dockerignore`
+17. **Added**: Frontend containerization baseline — `papersage_frontend/Dockerfile` with Node build stage and unprivileged Nginx runtime stage
+18. **Hardened**: Embedding reliability — `GeminiEmbeddingService` now applies bounded concurrency + retry/backoff + completion timeout; unit tests expanded for retry/timeout/fail-fast paths
+19. **Stabilized**: Docker/test startup path — replaced ambiguous constructor pattern in `GeminiEmbeddingService` with single-constructor DI using `GeminiEmbeddingProperties`; enabled `@ConfigurationPropertiesScan`; externalized tuning defaults under `app.embedding.*`; updated unit tests accordingly
+20. **Tuned**: Embedding burst behavior — added jitter to retry backoff in `GeminiEmbeddingService`, reduced default embedding parallelism/retry attempts (`max-concurrency` 6→4, `max-attempts` 3→2), and expanded unit tests to validate jitter range and low-backoff passthrough behavior
+21. **Added**: Root `compose.yaml` (modern Compose spec) for full-stack local container orchestration (`backend` + `frontend`)
+22. **Fixed**: Compose Gemini key resolution edge case — removed forced-empty interpolation behavior so mounted `secrets.properties` remains effective when env var is unset
+23. **Clarified**: Root `README.md` startup flow — Step 2 (Compose) documented as an alternative to Steps 3–4, with explicit skip guidance when Compose is used
+24. **Validated**: End-to-end run completed with a real PDF and live Gemini API key
