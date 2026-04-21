@@ -166,6 +166,38 @@ The production build outputs to `dist/`.
 
 ---
 
+## Run with Docker
+
+### Frontend Container Only
+
+From the repository root:
+
+```bash
+# Build the frontend image
+docker build -t papersage-frontend ./papersage_frontend
+
+# Run the container (host 5173 -> container 8080)
+docker run --rm -p 5173:8080 papersage-frontend
+```
+
+Open the app at **http://localhost:5173**.
+
+### With Docker Compose (Recommended for local full-stack)
+
+From the repository root:
+
+```bash
+# Start only the frontend service
+docker compose up --build frontend
+
+# Or start full stack (backend + frontend)
+docker compose up --build
+```
+
+Compose maps frontend `5173:8080`, so the UI is available at **http://localhost:5173**.
+
+---
+
 ## 📜 Available Scripts
 
 | Script          | Command             | Description                              |

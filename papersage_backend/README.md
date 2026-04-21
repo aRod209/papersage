@@ -30,7 +30,7 @@ Real-time progress is streamed to the frontend via **Server-Sent Events (SSE)**.
 | -------------------- | -------- | -------------------------------------- |
 | Java (JDK)           | 21       | Language runtime                       |
 | Spring Boot          | 3.5.11   | Web framework & dependency injection   |
-| Apache PDFBox        | 3.0.5    | PDF text extraction                    |
+| Apache PDFBox        | 3.0.4    | PDF text extraction                    |
 | Google GenAI SDK     | 1.1.0    | Gemini API client (summary, embeddings, Q&A) |
 | Jackson              | (bundled)| JSON serialization of DTOs             |
 | SLF4J / Logback      | (bundled)| Logging                                |
@@ -47,6 +47,7 @@ papersage_backend/
 │   │
 │   ├── config/
 │   │   ├── GeminiConfig.java                 # Gemini API client bean
+│   │   ├── GeminiEmbeddingProperties.java    # Typed app.embedding config properties
 │   │   └── WebConfig.java                    # CORS configuration
 │   │
 │   ├── controller/
@@ -65,8 +66,12 @@ papersage_backend/
 │   │   └── EmbeddedChunk.java                # Chunk + float[] embedding
 │   │
 │   ├── exception/
+│   │   ├── EmbeddingGenerationException.java # Embedding generation failures
 │   │   ├── GlobalExceptionHandler.java       # @ControllerAdvice error handler
-│   │   └── NotACsResearchPaperException.java # Guardrail rejection
+│   │   ├── GroundedAnswerGenerationException.java # Grounded Q&A generation failures
+│   │   ├── GuardrailClassificationException.java  # Guardrail service failures
+│   │   ├── NotACsResearchPaperException.java # Guardrail rejection
+│   │   └── PaperAnalysisGenerationException.java  # Analysis generation failures
 │   │
 │   └── service/
 │       ├── GeminiEmbeddingService.java       # Embed text via Gemini
@@ -135,8 +140,9 @@ Content-Type: multipart/form-data
 | ------ | ---------------------------------- |
 | `400`  | Empty file or non-PDF content type |
 | `413`  | File exceeds 50 MB limit          |
-| `422`  | Document is not a CS research paper |
-| `500`  | PDF extraction or Gemini API error |
+| `422`  | Document is not a CS research paper or PDF text extraction fails |
+| `503`  | AI service unavailable (classification, embedding, analysis, or Q&A) |
+| `500`  | Unexpected internal server error |
 
 ---
 
@@ -157,7 +163,7 @@ Opens a Server-Sent Events stream. The frontend should subscribe **before** call
 }
 ```
 
-Pipeline stages in order: `extracting` → `classifying` → `chunking` → `embedding` → `analyzing` → `complete`
+Pipeline stages in order: `extracting` → `classifying` → `chunking` → `embedding` → `analyzing` → `done`
 
 **Timeout:** 120 seconds
 
@@ -263,6 +269,11 @@ spring:
 app:
   cors:
     allowed-origins: "http://localhost:3000,http://localhost:5173"
+  embedding:
+    max-concurrency: 4
+    max-attempts: 2
+    initial-backoff-millis: 500
+    completion-timeout-seconds: 30
 ```
 
 | Property                              | Default              | Description                       |
@@ -272,6 +283,10 @@ app:
 | `spring.servlet.multipart.max-file-size` | `50MB`            | Maximum upload file size          |
 | `spring.servlet.multipart.max-request-size` | `50MB`         | Maximum request size              |
 | `app.cors.allowed-origins`            | `localhost:3000,5173`| Allowed CORS origins              |
+| `app.embedding.max-concurrency`       | `4`                 | Max parallel in-flight embedding requests |
+| `app.embedding.max-attempts`          | `2`                 | Max attempts per chunk (initial + retries) |
+| `app.embedding.initial-backoff-millis`| `500`               | Initial retry backoff duration    |
+| `app.embedding.completion-timeout-seconds` | `30`          | Timeout for full embedding completion |
 
 ### `secrets.properties`
 
@@ -299,19 +314,23 @@ The `GlobalExceptionHandler` (`@ControllerAdvice`) maps exceptions to consistent
 
 | Exception                        | HTTP Status | Error Key                    |
 | -------------------------------- | ----------- | ---------------------------- |
-| `NotACsResearchPaperException`   | `422`       | `not_cs_research_paper`      |
-| `MaxUploadSizeExceededException` | `413`       | `file_too_large`             |
-| `MissingServletRequestPartException` | `400`   | `missing_file`               |
-| `ApiException` (Gemini)          | `502`       | `gemini_api_error`           |
-| `IOException`                    | `500`       | `io_error`                   |
-| Any other `Exception`            | `500`       | `internal_error`             |
+| `NotACsResearchPaperException`   | `422`       | `NOT_A_CS_RESEARCH_PAPER`    |
+| `MaxUploadSizeExceededException` | `413`       | `PAYLOAD_TOO_LARGE`          |
+| `MissingServletRequestPartException` | `400`   | `MISSING_FILE`               |
+| `IOException`                    | `422`       | `PDF_PROCESSING_FAILED`      |
+| `ApiException` (Gemini)          | `503`       | `AI_SERVICE_UNAVAILABLE`     |
+| `EmbeddingGenerationException`   | `503`       | `EMBEDDING_SERVICE_UNAVAILABLE` |
+| `PaperAnalysisGenerationException` | `503`     | `ANALYSIS_SERVICE_UNAVAILABLE` |
+| `GuardrailClassificationException` | `503`     | `GUARDRAIL_SERVICE_UNAVAILABLE` |
+| `GroundedAnswerGenerationException` | `503`    | `GROUNDING_SERVICE_UNAVAILABLE` |
+| `RuntimeException`               | `500`       | `INTERNAL_ERROR`             |
 
 All error responses follow the schema:
 
 ```json
 {
-  "error": "not_cs_research_paper",
-  "message": "The uploaded document does not appear to be a Computer Science research paper."
+  "error": "NOT_A_CS_RESEARCH_PAPER",
+  "message": "This document does not appear to be a CS research paper. PaperSage only supports computer science research papers."
 }
 ```
 
@@ -362,6 +381,23 @@ curl http://localhost:8080/api/v1/papers/progress
 ./mvnw clean compile        # Compile without running
 ./mvnw clean package        # Build JAR
 ```
+
+### Run with Docker (Backend Only)
+
+```bash
+# From the repository root
+docker build -t papersage-backend ./papersage_backend
+
+# Run backend container on port 8080
+# Option A: pass API key via environment variable
+docker run --rm -p 8080:8080 -e GEMINI_API_KEY=your-key-here papersage-backend
+```
+
+> Prefer file-based secrets instead of an env var? Mount a host directory containing `secrets.properties` and set `SPRING_CONFIG_IMPORT` to include it.
+
+### Run with Docker Compose (Full Stack)
+
+For backend + frontend orchestration, use the root-level Compose setup documented in [**../README.md**](../README.md).
 
 ---
 
