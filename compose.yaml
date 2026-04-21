@@ -1,0 +1,25 @@
+name: papersage
+
+services:
+  backend:
+    build:
+      context: ./papersage_backend
+    ports:
+      - "8080:8080"
+    environment:
+      GEMINI_API_KEY:
+      SPRING_CONFIG_IMPORT: optional:classpath:secrets.properties,optional:file:/app/secrets/secrets.properties
+    volumes:
+      - ${BACKEND_SECRETS_DIR:-./papersage_backend/src/main/resources}:/app/secrets:ro
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./papersage_frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "5173:8080"
+    depends_on:
+      - backend
+    restart: unless-stopped

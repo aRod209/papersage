@@ -1,0 +1,30 @@
+# Build output
+target/
+
+# Local secrets / env
+secrets.properties
+src/main/resources/secrets.properties
+.env
+.env.*
+
+# IDE/editor files
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# VCS metadata and docs not required for image build context
+.git/
+.gitignore
+README.md
+
+# Docker artifacts
+Dockerfile*
+.dockerignore

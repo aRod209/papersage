@@ -1,0 +1,31 @@
+# Dependencies and build outputs
+node_modules/
+dist/
+dist-ssr/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VCS and docs not needed in Docker build context
+.git/
+.gitignore
+README.md
+
+# Docker artifacts
+Dockerfile*
+.dockerignore
