@@ -88,6 +88,8 @@ graph LR
 
 ```
 papersage/
+├── compose.yaml              # Docker Compose for backend + frontend
+│
 ├── papersage_backend/        # Spring Boot REST API
 │   ├── src/main/java/...     #   Controllers, services, DTOs, config
 │   ├── pom.xml               #   Maven build
@@ -117,11 +119,24 @@ papersage/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/papersage.git
+git clone https://github.com/aRod209/papersage.git
 cd papersage
 ```
 
-### 2. Start the backend
+### 2. (Optional) Run full stack with Docker Compose (alternative to Steps 3–4)
+
+```bash
+# Starts backend (http://localhost:8080) and frontend (http://localhost:5173)
+docker compose up --build
+```
+
+> Backend Gemini key options in Compose:
+> - `GEMINI_API_KEY` environment variable, or
+> - mounted `secrets.properties` file via `BACKEND_SECRETS_DIR` (defaults to `./papersage_backend/src/main/resources`).
+
+> If you use Docker Compose, you can skip Steps 3 and 4.
+
+### 3. (Alternative) Start the backend manually
 
 ```bash
 cd papersage_backend
@@ -143,7 +158,7 @@ mvnw.cmd spring-boot:run        # Windows
 
 The API starts at **http://localhost:8080**.
 
-### 3. Start the frontend
+### 4. (Alternative) Start the frontend manually
 
 ```bash
 cd papersage_frontend
