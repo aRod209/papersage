@@ -2,6 +2,7 @@ package com.anthonyrodriguez.papersage_backend.service;
 
 import com.anthonyrodriguez.papersage_backend.dto.GlossaryEntry;
 import com.anthonyrodriguez.papersage_backend.dto.PaperAnalysisResponse;
+import com.anthonyrodriguez.papersage_backend.exception.PaperAnalysisGenerationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
 import com.google.genai.Models;
@@ -135,7 +136,7 @@ class GeminiSummaryServiceTest {
     // ─── Malformed JSON ───────────────────────────────────────────────────────
 
     @Test
-    void should_throwRuntimeException_when_geminiReturnsInvalidJson() {
+    void should_throwPaperAnalysisGenerationException_when_geminiReturnsInvalidJson() {
         // Arrange
         GenerateContentResponse response = buildResponse("This is not JSON at all.");
         when(mockModels.generateContent(anyString(), anyString(), any(GenerateContentConfig.class)))
@@ -143,7 +144,7 @@ class GeminiSummaryServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.analyzePaper("Some paper text."))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(PaperAnalysisGenerationException.class)
                 .hasMessageContaining("unexpected format");
     }
 

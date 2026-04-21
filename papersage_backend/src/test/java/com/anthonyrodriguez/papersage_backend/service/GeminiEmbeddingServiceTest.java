@@ -1,5 +1,7 @@
 package com.anthonyrodriguez.papersage_backend.service;
 
+import com.anthonyrodriguez.papersage_backend.config.GeminiEmbeddingProperties;
+import com.anthonyrodriguez.papersage_backend.exception.EmbeddingGenerationException;
 import com.google.genai.Client;
 import com.google.genai.Models;
 import com.google.genai.types.ContentEmbedding;
@@ -15,6 +17,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +31,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class GeminiEmbeddingServiceTest {
 
+    private static final GeminiEmbeddingProperties DEFAULT_PROPERTIES =
+            new GeminiEmbeddingProperties(6, 3, 500L, 30L);
+
     @Mock
     private Client mockClient;
 
@@ -40,7 +46,20 @@ class GeminiEmbeddingServiceTest {
     void setUp() {
         // Client.models is a final field — use ReflectionTestUtils to inject the mock
         ReflectionTestUtils.setField(mockClient, "models", mockModels);
-        service = new GeminiEmbeddingService(mockClient);
+        service = new GeminiEmbeddingService(mockClient, DEFAULT_PROPERTIES);
+    }
+
+    private GeminiEmbeddingService configuredService(int maxConcurrency,
+                                                     int maxAttempts,
+                                                     long initialBackoffMillis,
+                                                     long completionTimeoutSeconds) {
+        GeminiEmbeddingProperties properties = new GeminiEmbeddingProperties(
+                maxConcurrency,
+                maxAttempts,
+                initialBackoffMillis,
+                completionTimeoutSeconds
+        );
+        return new GeminiEmbeddingService(mockClient, properties);
     }
 
     // ─── Helper: builds a mock EmbedContentResponse with a given vector ───────
@@ -102,11 +121,15 @@ class GeminiEmbeddingServiceTest {
     @Test
     void should_returnOneEmbeddingPerText_when_embedDocumentsIsCalled() {
         // Arrange
-        EmbedContentResponse response1 = buildEmbedResponse(0.1f, 0.2f);
-        EmbedContentResponse response2 = buildEmbedResponse(0.3f, 0.4f);
         when(mockModels.embedContent(anyString(), anyString(), any(EmbedContentConfig.class)))
-                .thenReturn(response1)
-                .thenReturn(response2);
+                .thenAnswer(invocation -> {
+                    String text = invocation.getArgument(1, String.class);
+                    return switch (text) {
+                        case "Text one" -> buildEmbedResponse(0.1f, 0.2f);
+                        case "Text two" -> buildEmbedResponse(0.3f, 0.4f);
+                        default -> throw new IllegalArgumentException("Unexpected text: " + text);
+                    };
+                });
 
         // Act
         List<float[]> results = service.embedDocuments(List.of("Text one", "Text two"));
@@ -158,10 +181,107 @@ class GeminiEmbeddingServiceTest {
         assertThat(results).isEmpty();
     }
 
+    @Test
+    void should_retryTransientFailureAndEventuallySucceed_when_embedDocumentsIsCalled() {
+        // Arrange
+        GeminiEmbeddingService retryingService = configuredService(2, 3, 0, 30);
+        AtomicInteger attempts = new AtomicInteger(0);
+
+        when(mockModels.embedContent(anyString(), anyString(), any(EmbedContentConfig.class)))
+                .thenAnswer(invocation -> {
+                    if (attempts.incrementAndGet() == 1) {
+                        throw new RuntimeException("429 Too Many Requests");
+                    }
+                    return buildEmbedResponse(0.9f, 0.8f);
+                });
+
+        // Act
+        List<float[]> results = retryingService.embedDocuments(List.of("Doc A"));
+
+        // Assert
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0)).containsExactly(0.9f, 0.8f);
+        verify(mockModels, times(2)).embedContent(anyString(), anyString(), any(EmbedContentConfig.class));
+    }
+
+    @Test
+    void should_computeJitteredBackoffWithinExpectedRange_when_backoffIsGreaterThanOne() {
+        // Arrange
+        long baseBackoffMillis = 500L;
+
+        // Act + Assert
+        for (int i = 0; i < 30; i++) {
+            Long jitteredBackoffMillis = ReflectionTestUtils.invokeMethod(
+                    GeminiEmbeddingService.class,
+                    "computeJitteredBackoffMillis",
+                    baseBackoffMillis
+            );
+
+            assertThat(jitteredBackoffMillis).isNotNull();
+            assertThat(jitteredBackoffMillis)
+                    .isGreaterThanOrEqualTo(baseBackoffMillis / 2)
+                    .isLessThanOrEqualTo(baseBackoffMillis);
+        }
+    }
+
+    @Test
+    void should_notApplyJitter_when_backoffIsZeroOrOne() {
+        // Act
+        Long zeroBackoffResult = ReflectionTestUtils.invokeMethod(
+                GeminiEmbeddingService.class,
+                "computeJitteredBackoffMillis",
+                0L
+        );
+        Long oneBackoffResult = ReflectionTestUtils.invokeMethod(
+                GeminiEmbeddingService.class,
+                "computeJitteredBackoffMillis",
+                1L
+        );
+
+        // Assert
+        assertThat(zeroBackoffResult).isNotNull().isZero();
+        assertThat(oneBackoffResult).isNotNull().isEqualTo(1L);
+    }
+
+    @Test
+    void should_failFastOnNonRetryableFailure_when_embedDocumentsIsCalled() {
+        // Arrange
+        GeminiEmbeddingService retryingService = configuredService(2, 3, 0, 30);
+        when(mockModels.embedContent(anyString(), anyString(), any(EmbedContentConfig.class)))
+                .thenThrow(new RuntimeException("400 bad request"));
+
+        // Act & Assert
+        assertThatThrownBy(() -> retryingService.embedDocuments(List.of("Doc A")))
+                .isInstanceOf(EmbeddingGenerationException.class)
+                .hasMessageContaining("Embedding failed for one or more chunks")
+                .satisfies(ex -> assertThat(ex.getCause())
+                        .isNotNull()
+                        .hasMessage("Failed to embed chunk 1/1 after 1 attempt(s)"))
+                .hasRootCauseMessage("400 bad request");
+
+        verify(mockModels, times(1)).embedContent(anyString(), anyString(), any(EmbedContentConfig.class));
+    }
+
+    @Test
+    void should_throwTimeout_when_embeddingTaskDoesNotCompleteWithinTimeout() {
+        // Arrange
+        GeminiEmbeddingService timeoutService = configuredService(1, 1, 0, 1);
+        when(mockModels.embedContent(anyString(), anyString(), any(EmbedContentConfig.class)))
+                .thenAnswer(invocation -> {
+                    Thread.sleep(2_000);
+                    return buildEmbedResponse(0.1f);
+                });
+
+        // Act & Assert
+        assertThatThrownBy(() -> timeoutService.embedDocuments(List.of("Doc A")))
+                .isInstanceOf(EmbeddingGenerationException.class)
+                .hasMessageContaining("Timed out waiting for embedding completion after 1 seconds");
+    }
+
     // ─── Error handling ───────────────────────────────────────────────────────
 
     @Test
-    void should_throwRuntimeException_when_embeddingsResponseContainsNoEmbeddings() {
+    void should_throwEmbeddingGenerationException_when_embeddingsResponseContainsNoEmbeddings() {
         // Arrange
         EmbedContentResponse response = mock(EmbedContentResponse.class);
         when(response.embeddings()).thenReturn(Optional.empty());
@@ -170,12 +290,12 @@ class GeminiEmbeddingServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.embedQuery("test"))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(EmbeddingGenerationException.class)
                 .hasMessageContaining("no embeddings");
     }
 
     @Test
-    void should_throwRuntimeException_when_embeddingContainsNoValues() {
+    void should_throwEmbeddingGenerationException_when_embeddingContainsNoValues() {
         // Arrange
         ContentEmbedding embedding = mock(ContentEmbedding.class);
         when(embedding.values()).thenReturn(Optional.empty());
@@ -188,7 +308,7 @@ class GeminiEmbeddingServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.embedQuery("test"))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(EmbeddingGenerationException.class)
                 .hasMessageContaining("no values");
     }
 }

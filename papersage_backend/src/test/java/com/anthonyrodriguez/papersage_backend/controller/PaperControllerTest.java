@@ -9,8 +9,10 @@ import com.anthonyrodriguez.papersage_backend.dto.TextChunk;
 import com.anthonyrodriguez.papersage_backend.service.GeminiSummaryService;
 import com.anthonyrodriguez.papersage_backend.service.GroundedAnswerService;
 import com.anthonyrodriguez.papersage_backend.service.PdfExtractionService;
+import com.anthonyrodriguez.papersage_backend.service.PaperGuardrailService;
 import com.anthonyrodriguez.papersage_backend.service.SemanticRetrievalService;
 import com.anthonyrodriguez.papersage_backend.service.TextChunkingService;
+import com.anthonyrodriguez.papersage_backend.service.UploadProgressService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,6 +28,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -46,6 +49,12 @@ class PaperControllerTest {
 
     @Mock
     private GroundedAnswerService groundedAnswerService;
+
+    @Mock
+    private UploadProgressService uploadProgressService;
+
+    @Mock
+    private PaperGuardrailService paperGuardrailService;
 
     @InjectMocks
     private PaperController controller;
@@ -134,7 +143,7 @@ class PaperControllerTest {
         // Assert — verify the full pipeline was executed
         verify(pdfExtractionService).extractText(any());
         verify(textChunkingService).chunkText("Some text.");
-        verify(semanticRetrievalService).indexChunks(chunks);
+        verify(semanticRetrievalService).indexChunks(eq(chunks), any());
         verify(geminiSummaryService).analyzePaper("Some text.");
     }
 

@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -82,7 +83,7 @@ class SemanticRetrievalServiceTest {
     void should_returnCorrectCount_when_chunksAreIndexed() {
         // Arrange
         List<TextChunk> chunks = List.of(makeChunk(0, "Alpha."), makeChunk(1, "Beta."), makeChunk(2, "Gamma."));
-        when(embeddingService.embedDocuments(anyList()))
+        when(embeddingService.embedDocuments(anyList(), isNull()))
                 .thenReturn(List.of(ZERO_VECTOR, ZERO_VECTOR, ZERO_VECTOR));
 
         // Act
@@ -98,7 +99,7 @@ class SemanticRetrievalServiceTest {
     void should_replaceOldChunks_when_indexChunksCalledASecondTime() {
         // Arrange — first upload with 3 chunks
         List<TextChunk> firstBatch = List.of(makeChunk(0, "A."), makeChunk(1, "B."), makeChunk(2, "C."));
-        when(embeddingService.embedDocuments(anyList()))
+        when(embeddingService.embedDocuments(anyList(), isNull()))
                 .thenReturn(List.of(ZERO_VECTOR, ZERO_VECTOR, ZERO_VECTOR))
                 .thenReturn(List.of(ZERO_VECTOR));
 
@@ -127,7 +128,7 @@ class SemanticRetrievalServiceTest {
                 ZERO_VECTOR, ZERO_VECTOR, ZERO_VECTOR, ZERO_VECTOR,
                 ZERO_VECTOR, ZERO_VECTOR, ZERO_VECTOR, ZERO_VECTOR
         );
-        when(embeddingService.embedDocuments(anyList())).thenReturn(embeddings);
+        when(embeddingService.embedDocuments(anyList(), isNull())).thenReturn(embeddings);
         when(embeddingService.embedQuery(any())).thenReturn(ZERO_VECTOR);
 
         service.indexChunks(chunks);
@@ -158,7 +159,7 @@ class SemanticRetrievalServiceTest {
                 makeChunk(1, "High relevance."),
                 makeChunk(2, "Medium relevance.")
         );
-        when(embeddingService.embedDocuments(anyList()))
+        when(embeddingService.embedDocuments(anyList(), isNull()))
                 .thenReturn(List.of(lowSim, highSim, medSim));
         when(embeddingService.embedQuery(any())).thenReturn(uniformVector(1.0f));
 
@@ -179,7 +180,7 @@ class SemanticRetrievalServiceTest {
     void should_callEmbedQuery_when_retrieveTopChunksIsInvoked() {
         // Arrange
         List<TextChunk> chunks = List.of(makeChunk(0, "Some text."));
-        when(embeddingService.embedDocuments(anyList())).thenReturn(List.of(ZERO_VECTOR));
+        when(embeddingService.embedDocuments(anyList(), isNull())).thenReturn(List.of(ZERO_VECTOR));
         when(embeddingService.embedQuery(any())).thenReturn(ZERO_VECTOR);
         service.indexChunks(chunks);
 

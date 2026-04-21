@@ -134,6 +134,118 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().message()).isNotBlank();
     }
 
+    // ─── EmbeddingGenerationException → 503 ───────────────────────────────────
+
+    @Test
+    void should_return503_when_embeddingGenerationExceptionIsThrown() {
+        // Arrange
+        EmbeddingGenerationException ex = new EmbeddingGenerationException("embedding failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleEmbeddingGenerationException(ex);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @Test
+    void should_returnEmbeddingServiceUnavailableErrorCode_when_embeddingGenerationExceptionIsThrown() {
+        // Arrange
+        EmbeddingGenerationException ex = new EmbeddingGenerationException("embedding failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleEmbeddingGenerationException(ex);
+
+        // Assert
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().error()).isEqualTo("EMBEDDING_SERVICE_UNAVAILABLE");
+        assertThat(response.getBody().message()).isNotBlank();
+    }
+
+    // ─── PaperAnalysisGenerationException → 503 ───────────────────────────────
+
+    @Test
+    void should_return503_when_paperAnalysisGenerationExceptionIsThrown() {
+        // Arrange
+        PaperAnalysisGenerationException ex = new PaperAnalysisGenerationException("analysis failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handlePaperAnalysisGenerationException(ex);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @Test
+    void should_returnAnalysisServiceUnavailableErrorCode_when_paperAnalysisGenerationExceptionIsThrown() {
+        // Arrange
+        PaperAnalysisGenerationException ex = new PaperAnalysisGenerationException("analysis failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handlePaperAnalysisGenerationException(ex);
+
+        // Assert
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().error()).isEqualTo("ANALYSIS_SERVICE_UNAVAILABLE");
+        assertThat(response.getBody().message()).isNotBlank();
+    }
+
+    // ─── GuardrailClassificationException → 503 ───────────────────────────────
+
+    @Test
+    void should_return503_when_guardrailClassificationExceptionIsThrown() {
+        // Arrange
+        GuardrailClassificationException ex = new GuardrailClassificationException("guardrail failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleGuardrailClassificationException(ex);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @Test
+    void should_returnGuardrailServiceUnavailableErrorCode_when_guardrailClassificationExceptionIsThrown() {
+        // Arrange
+        GuardrailClassificationException ex = new GuardrailClassificationException("guardrail failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleGuardrailClassificationException(ex);
+
+        // Assert
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().error()).isEqualTo("GUARDRAIL_SERVICE_UNAVAILABLE");
+        assertThat(response.getBody().message()).isNotBlank();
+    }
+
+    // ─── GroundedAnswerGenerationException → 503 ──────────────────────────────
+
+    @Test
+    void should_return503_when_groundedAnswerGenerationExceptionIsThrown() {
+        // Arrange
+        GroundedAnswerGenerationException ex = new GroundedAnswerGenerationException("grounding failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleGroundedAnswerGenerationException(ex);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @Test
+    void should_returnGroundingServiceUnavailableErrorCode_when_groundedAnswerGenerationExceptionIsThrown() {
+        // Arrange
+        GroundedAnswerGenerationException ex = new GroundedAnswerGenerationException("grounding failure");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = handler.handleGroundedAnswerGenerationException(ex);
+
+        // Assert
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().error()).isEqualTo("GROUNDING_SERVICE_UNAVAILABLE");
+        assertThat(response.getBody().message()).isNotBlank();
+    }
+
     // ─── RuntimeException → 500 ──────────────────────────────────────────────
 
     @Test
@@ -172,9 +284,13 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> r3 = handler.handleIOException(new IOException("io"));
         ResponseEntity<ErrorResponse> r4 = handler.handleGeminiApiException(new ApiException(503, "SERVICE_UNAVAILABLE", "api error"));
         ResponseEntity<ErrorResponse> r5 = handler.handleRuntimeException(new RuntimeException("rt"));
+        ResponseEntity<ErrorResponse> r6 = handler.handleEmbeddingGenerationException(new EmbeddingGenerationException("embedding"));
+        ResponseEntity<ErrorResponse> r7 = handler.handlePaperAnalysisGenerationException(new PaperAnalysisGenerationException("analysis"));
+        ResponseEntity<ErrorResponse> r8 = handler.handleGuardrailClassificationException(new GuardrailClassificationException("guardrail"));
+        ResponseEntity<ErrorResponse> r9 = handler.handleGroundedAnswerGenerationException(new GroundedAnswerGenerationException("grounding"));
 
         // Assert — every response body must have both fields populated
-        for (ResponseEntity<ErrorResponse> r : java.util.List.of(r1, r2, r3, r4, r5)) {
+        for (ResponseEntity<ErrorResponse> r : java.util.List.of(r1, r2, r3, r4, r5, r6, r7, r8, r9)) {
             assertThat(r.getBody()).isNotNull();
             assertThat(r.getBody().error()).isNotBlank();
             assertThat(r.getBody().message()).isNotBlank();

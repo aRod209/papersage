@@ -3,6 +3,7 @@ package com.anthonyrodriguez.papersage_backend.service;
 import com.anthonyrodriguez.papersage_backend.dto.AnswerResponse;
 import com.anthonyrodriguez.papersage_backend.dto.RetrievalResult;
 import com.anthonyrodriguez.papersage_backend.dto.TextChunk;
+import com.anthonyrodriguez.papersage_backend.exception.GroundedAnswerGenerationException;
 import com.google.genai.Client;
 import com.google.genai.Models;
 import com.google.genai.types.GenerateContentConfig;
@@ -151,7 +152,7 @@ class GroundedAnswerServiceTest {
     // ─── Gemini returns blank response ───────────────────────────────────────
 
     @Test
-    void should_throwRuntimeException_when_geminiReturnsBlankAnswer() {
+    void should_throwGroundedAnswerGenerationException_when_geminiReturnsBlankAnswer() {
         // Arrange
         String question = "What is the loss function?";
         List<RetrievalResult> chunks = List.of(makeRetrievalResult(0, "Some context.", 0.8));
@@ -164,7 +165,7 @@ class GroundedAnswerServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> service.answerQuestion(question))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(GroundedAnswerGenerationException.class)
                 .hasMessageContaining("empty response");
     }
 }
