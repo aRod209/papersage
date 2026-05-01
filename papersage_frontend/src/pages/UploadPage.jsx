@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react'
+import { API_BASE } from '../api/apiBase.js'
 import { uploadPaper } from '../api/paperApi.js'
 import UploadDropzone from '../components/UploadDropzone.jsx'
 import ProgressBar from '../components/ProgressBar.jsx'
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 /**
  * Upload page — lets the user select and upload a PDF.

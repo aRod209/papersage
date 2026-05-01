@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+import { API_BASE } from './apiBase.js'
 
 /**
  * Upload a PDF file for analysis.
@@ -36,10 +36,12 @@ export async function uploadPaper(file) {
  * @returns {Promise<AnswerResponse>}
  */
 export async function askQuestion(question) {
-  const params = new URLSearchParams({ question })
-
-  const res = await fetch(`${API_BASE}/api/v1/papers/ask?${params}`, {
+  const res = await fetch(`${API_BASE}/api/v1/papers/ask`, {
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ question }),
   })
 
   if (!res.ok) {
