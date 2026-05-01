@@ -1,3 +1,8 @@
+---
+paths:
+  - "papersage_backend/src/**"
+---
+
 # Java 21 Coding Standards & Guidelines
 
 You are an expert Java 21 developer. Follow these rules strictly to ensure code quality, maintainability, and modern performance standards.

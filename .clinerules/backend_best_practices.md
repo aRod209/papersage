@@ -1,6 +1,6 @@
 ---
 paths:
-  - "papersage_backend/src/**"    # All files under src/
+  - "papersage_backend/src/**" 
 ---
 
 # Software Engineering Constitution: SOLID, KISS, & DRY
