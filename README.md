@@ -183,7 +183,7 @@ All endpoints are under the base path `/api/v1/papers`.
 | ------ | ------------------------------ | -------------------------------------------- |
 | `POST` | `/api/v1/papers`               | Upload a PDF → returns structured analysis   |
 | `GET`  | `/api/v1/papers/progress`      | SSE stream of pipeline progress events       |
-| `POST` | `/api/v1/papers/ask?question=` | Ask a question → grounded answer with sources |
+| `POST` | `/api/v1/papers/ask`           | Ask a question (JSON body `{ question }`) → grounded answer with sources |
 | `POST` | `/api/v1/papers/query?question=` | Retrieve top matching text chunks            |
 
 > See the [Backend README](./papersage_backend/README.md) for full API reference with request/response schemas.
