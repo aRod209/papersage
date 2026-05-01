@@ -1,6 +1,7 @@
 package com.anthonyrodriguez.papersage_backend.controller;
 
 import com.anthonyrodriguez.papersage_backend.dto.AnswerResponse;
+import com.anthonyrodriguez.papersage_backend.dto.AskQuestionRequest;
 import com.anthonyrodriguez.papersage_backend.dto.GlossaryEntry;
 import com.anthonyrodriguez.papersage_backend.dto.PaperAnalysisResponse;
 import com.anthonyrodriguez.papersage_backend.dto.QueryResponse;
@@ -204,7 +205,7 @@ class PaperControllerTest {
     @Test
     void should_return400_when_askQuestionIsNull() {
         // Act
-        ResponseEntity<AnswerResponse> response = controller.askPaper(null);
+        ResponseEntity<AnswerResponse> response = controller.askPaper(null, null);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -213,7 +214,7 @@ class PaperControllerTest {
     @Test
     void should_return400_when_askQuestionIsBlank() {
         // Act
-        ResponseEntity<AnswerResponse> response = controller.askPaper("  ");
+        ResponseEntity<AnswerResponse> response = controller.askPaper(new AskQuestionRequest("  "), null);
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -232,7 +233,10 @@ class PaperControllerTest {
         when(groundedAnswerService.answerQuestion(anyString())).thenReturn(answer);
 
         // Act
-        ResponseEntity<AnswerResponse> response = controller.askPaper("What are the limitations?");
+        ResponseEntity<AnswerResponse> response = controller.askPaper(
+                new AskQuestionRequest("What are the limitations?"),
+                null
+        );
 
         // Assert
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -248,9 +252,24 @@ class PaperControllerTest {
         when(groundedAnswerService.answerQuestion(question)).thenReturn(answer);
 
         // Act
-        controller.askPaper(question);
+        controller.askPaper(new AskQuestionRequest(question), null);
 
         // Assert
+        verify(groundedAnswerService).answerQuestion(question);
+    }
+
+    @Test
+    void should_useQueryParamAsFallback_when_requestBodyMissingQuestion() {
+        // Arrange
+        String question = "What baseline model is used?";
+        AnswerResponse answer = new AnswerResponse(question, "The baseline is BERT.", List.of());
+        when(groundedAnswerService.answerQuestion(question)).thenReturn(answer);
+
+        // Act
+        ResponseEntity<AnswerResponse> response = controller.askPaper(new AskQuestionRequest("  "), question);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(groundedAnswerService).answerQuestion(question);
     }
 }

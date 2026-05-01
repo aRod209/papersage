@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.anthonyrodriguez.papersage_backend.dto.AnswerResponse;
+import com.anthonyrodriguez.papersage_backend.dto.AskQuestionRequest;
 import com.anthonyrodriguez.papersage_backend.dto.PaperAnalysisResponse;
 import com.anthonyrodriguez.papersage_backend.dto.QueryResponse;
 import com.anthonyrodriguez.papersage_backend.dto.RetrievalResult;
@@ -177,7 +179,11 @@ public class PaperController {
     }
 
     @PostMapping(value = "/ask", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AnswerResponse> askPaper(@RequestParam("question") String question) {
+    public ResponseEntity<AnswerResponse> askPaper(
+            @RequestBody(required = false) AskQuestionRequest request,
+            @RequestParam(value = "question", required = false) String questionParam) {
+        String question = resolveQuestion(request, questionParam);
+
         if (question == null || question.isBlank()) {
             logger.warn("Ask attempt with empty question");
             return ResponseEntity.badRequest().build();
@@ -190,5 +196,12 @@ public class PaperController {
         logger.info("Grounded answer generated for question: \"{}\"", question);
 
         return ResponseEntity.ok(answer);
+    }
+
+    private String resolveQuestion(AskQuestionRequest request, String questionParam) {
+        if (request != null && request.question() != null && !request.question().isBlank()) {
+            return request.question();
+        }
+        return questionParam;
     }
 }
