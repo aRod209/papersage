@@ -5,6 +5,33 @@ Full-stack MVP is feature-complete. Backend and frontend are both fully built. P
 
 ## Recent Changes (Most Recent First)
 
+
+### Refactor: Frontend API Boundary Cleanup (#5) Completed
+Completed priority refactor #5 from architecture review: unified frontend API base configuration and moved ask endpoint contract to JSON body.
+
+**Frontend changes:**
+- Added `src/api/apiBase.js` as the single source of truth for `VITE_API_BASE_URL`.
+- Updated `src/api/paperApi.js` to import shared `API_BASE` and send ask requests as:
+  - `POST /api/v1/papers/ask`
+  - `Content-Type: application/json`
+  - body: `{ "question": "..." }`
+- Updated `src/pages/UploadPage.jsx` to reuse shared `API_BASE` for SSE (`/api/v1/papers/progress`), removing duplicated base URL resolution.
+
+**Backend changes:**
+- Added `AskQuestionRequest` DTO record.
+- Updated `PaperController.askPaper(...)` to accept JSON body via `@RequestBody(required = false)` and keep temporary query-param fallback via optional `@RequestParam` for backward compatibility.
+- Added `resolveQuestion(...)` helper to enforce body-first, param-fallback behavior.
+- Updated `PaperControllerTest` to cover JSON-body path and fallback behavior.
+
+**Documentation updates:**
+- Updated root `README.md` API overview for ask endpoint JSON contract.
+- Updated `papersage_backend/README.md` ask endpoint docs (request body schema + fallback note) and DTO table.
+- Updated `papersage_frontend/README.md` API section and shared API base note.
+
+**Verification results:**
+- Frontend build: success (`FRONTEND_BUILD_EXIT=0`).
+- Backend full test suite: success (`BACKEND_FULL_TEST_EXIT=0`, 73 tests, 0 failures).
+
 ### Architecture Review: Detailed Assessment Saved (MVP vs. Production Readiness)
 Completed a full architecture quality review against modern backend/frontend practices and recorded concrete findings.
 
@@ -222,7 +249,7 @@ Complete React/Vite frontend UI built from scratch.
 - **Avoid empty-env override**: do not force `GEMINI_API_KEY` to empty string in compose interpolation defaults
 - **No router**: Only two views exist; `useState` view-switch is sufficient and simpler
 - **First executiveSummary bullet as TL;DR**: Backend has no dedicated `tldr` field — the first bullet is promoted as a prominent navy banner on the results page
-- **`/api/v1/papers/ask` uses query param**: `POST /api/v1/papers/ask?question=...` — matches backend `@RequestParam`
+- **`/api/v1/papers/ask` primary contract is JSON body**: `POST /api/v1/papers/ask` with `{ question }`; query param remains temporary fallback for compatibility
 - **Tailwind v4**: No `tailwind.config.js` needed; `@import "tailwindcss"` in `index.css` + `@tailwindcss/vite` plugin in `vite.config.js`
 - **Single-paper session**: Uploading a new paper replaces previous data in backend memory
 - **`PaperAnalysisResponse` has 4 fields**: `executiveSummary`, `keyContributions`, `glossary`, `prerequisiteKnowledge` — unit tests must pass all 4 args (use `null` for `prerequisiteKnowledge` where not needed)
@@ -235,7 +262,7 @@ Complete React/Vite frontend UI built from scratch.
 - Functional components with hooks only
 - Local state (`useState`) for all UI state; no global state libraries
 - Native `fetch` for API calls; no axios
-- All API calls centralized in `src/api/paperApi.js`
+- All API calls centralized in `src/api/paperApi.js`; shared base URL resolved once in `src/api/apiBase.js`
 - Error handling in every component (loading + error + empty states)
 - Accessible: semantic HTML, ARIA labels, keyboard navigation on dropzone
 - All Java services use constructor injection (no `@Autowired` field injection)

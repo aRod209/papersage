@@ -69,6 +69,7 @@
 
 ### Validation ✅
 - ✅ End-to-end flow validated with a real PDF and a live Gemini API key
+- ✅ Refactor #5 validated: frontend build passes and backend full test suite passes after API boundary cleanup (`POST /ask` JSON body + shared frontend API base)
 
 ## What's Left to Build
 - ❌ Unit test for `PaperGuardrailService`
@@ -113,7 +114,7 @@
 2. Extract upload orchestration into application/facade workflow service
 3. Concurrency-safe retrieval index strategy (immutable snapshots and/or per-session store)
 4. Typed SSE event DTO serialization
-5. Frontend API boundary cleanup (single API base source + consider JSON body for ask endpoint)
+5. ✅ Frontend API boundary cleanup completed (single API base source + ask endpoint JSON body contract with temporary query-param fallback)
 
 ## Evolution of Project Decisions
 1. **Started with**: Simple PDF upload → text extraction → LLM summary
@@ -140,3 +141,4 @@
 22. **Fixed**: Compose Gemini key resolution edge case — removed forced-empty interpolation behavior so mounted `secrets.properties` remains effective when env var is unset
 23. **Clarified**: Root `README.md` startup flow — Step 2 (Compose) documented as an alternative to Steps 3–4, with explicit skip guidance when Compose is used
 24. **Validated**: End-to-end run completed with a real PDF and live Gemini API key
+25. **Refactored**: API boundary cleanup (#5) — frontend now uses single shared API base source (`src/api/apiBase.js`), ask calls switched to JSON body (`POST /api/v1/papers/ask` with `{ question }`), backend accepts JSON-body ask contract (with temporary query-param fallback), controller tests updated, and root/backend/frontend READMEs updated accordingly

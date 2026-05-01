@@ -106,7 +106,8 @@ papersage_frontend/
     ├── App.jsx                    (view-switch: upload ↔ results, no router)
     ├── index.css                  (Tailwind v4 @import + GT brand @theme block)
     ├── api/
-    │   └── paperApi.js            (uploadPaper(file), askQuestion(question))
+    │   ├── apiBase.js             (single source of truth for API base URL)
+    │   └── paperApi.js            (uploadPaper(file), askQuestion(question) with JSON-body ask contract)
     ├── assets/
     │   └── hero.png, vite.svg, typescript.svg
     ├── components/
@@ -208,6 +209,9 @@ npm run dev
 npm run build
 ```
 
+Latest verification (refactor #5):
+- `npm run build` succeeds after API boundary cleanup
+
 ## Development Setup
 - JDK 21+ required
 - Maven Wrapper included (`mvnw` / `mvnw.cmd`)
@@ -225,6 +229,10 @@ npm run build
 - **Lombok**: Included in `pom.xml` but currently unused — all DTOs use Java records instead of Lombok annotations.
 - **Java 21 features in use**: Pattern matching `instanceof` in `PaperController` content-type check; `String.formatted()` for message interpolation; records for all DTOs.
 - **`tsconfig.json`**: Only exists for VS Code language service compatibility in the plain-JS frontend (`allowJs: true`, `checkJs: false`, no `types: ["vite/client"]`).
+- **Frontend API boundary cleanup (#5)**:
+  - Shared base URL now comes from `src/api/apiBase.js` (consumed by both `paperApi.js` and `UploadPage.jsx` SSE connection)
+  - Ask endpoint now uses JSON-body request (`POST /api/v1/papers/ask` with `{ question }`)
+  - Backend keeps temporary query-param fallback for compatibility during migration
 - **Backend Dockerfile**: Uses a multi-stage build with Java 21 (`eclipse-temurin`), Maven Wrapper (`mvnw`) in the builder stage, and `java -jar /app/app.jar` in the runtime stage. Inline `# What:`/`# Why:` comments document every instruction.
 - **Frontend Dockerfile**: Uses a multi-stage build with `node:22-alpine` builder and `nginxinc/nginx-unprivileged:1.27-alpine` runtime; serves Vite `dist/` assets on port 8080.
 - **Embedding reliability hardening**: `GeminiEmbeddingService` now applies bounded concurrency (`maxConcurrency`), transient retry with exponential backoff (`maxAttempts`, `initialBackoffMillis`), and completion timeout protection (`completionTimeoutSeconds`).
