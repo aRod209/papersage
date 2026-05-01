@@ -104,7 +104,7 @@ papersage_frontend/
 | Function         | Method | Endpoint                        | Description                        |
 | ---------------- | ------ | ------------------------------- | ---------------------------------- |
 | `uploadPaper(file)` | `POST` | `/api/v1/papers`             | Uploads PDF, returns analysis JSON |
-| `askQuestion(question)` | `POST` | `/api/v1/papers/ask?question=` | Asks a question, returns grounded answer |
+| `askQuestion(question)` | `POST` | `/api/v1/papers/ask` | Sends JSON `{ question }`, returns grounded answer |
 
 The SSE progress stream (`GET /api/v1/papers/progress`) is opened directly in `UploadPage` using the `EventSource` API.
 

@@ -172,12 +172,21 @@ Pipeline stages in order: `extracting` → `classifying` → `chunking` → `emb
 ### Ask a Question (RAG)
 
 ```
-POST /api/v1/papers/ask?question={question}
+POST /api/v1/papers/ask
+Content-Type: application/json
 ```
 
-| Parameter  | Type     | Required | Description                           |
-| ---------- | -------- | -------- | ------------------------------------- |
-| `question` | `string` | ✅       | Natural-language question about the paper |
+**Request Body**
+
+```json
+{
+  "question": "What optimization algorithm was used?"
+}
+```
+
+| Field      | Type     | Required | Description                                |
+| ---------- | -------- | -------- | ------------------------------------------ |
+| `question` | `string` | ✅       | Natural-language question about the paper  |
 
 **Success Response** — `200 OK`
 
@@ -197,6 +206,8 @@ POST /api/v1/papers/ask?question={question}
 ```
 
 > Requires a paper to have been uploaded first (chunks must be indexed in memory).
+
+> Backward compatibility note: `?question=` query parameter is still accepted as a fallback during migration.
 
 ---
 
@@ -240,6 +251,7 @@ All DTOs use Java 21 `record` types for immutability.
 | `PaperAnalysisResponse`   | `executiveSummary: List<String>`, `keyContributions: List<String>`, `glossary: List<GlossaryEntry>`, `prerequisiteKnowledge: PrerequisiteKnowledge` |
 | `GlossaryEntry`           | `term: String`, `definition: String`                                   |
 | `PrerequisiteKnowledge`   | `mathTopics: List<String>`, `aiMlTopics: List<String>`                 |
+| `AskQuestionRequest`      | `question: String`                                                      |
 | `AnswerResponse`          | `question: String`, `answer: String`, `sources: List<SourceReference>` |
 | `SourceReference`         | `chunkId: String`, `chunkIndex: int`, `sectionLabel: String`, `similarityScore: double` |
 | `QueryResponse`           | `question: String`, `topChunks: List<RetrievalResult>`                 |
