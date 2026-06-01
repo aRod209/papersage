@@ -192,6 +192,7 @@ All endpoints are under the base path `/api/v1/papers`.
 
 ## 📚 Further Reading
 
+- [**RAG for Beginners**](./aidlc-docs/inception/reverse-engineering/rag/rag-for-beginners.md) — Plain-language explanation of RAG and how PaperSage implements it
 - [**Backend README**](./papersage_backend/README.md) — API reference, DTOs, services, configuration, error handling
 - [**Frontend README**](./papersage_frontend/README.md) — Components, pages, environment variables, build commands
 
